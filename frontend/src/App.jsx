@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import UserSignIn from './pages/UserSignIn';
 import AdminSignIn from './pages/AdminSignIn';
 import './App.css';
+import Register from './pages/Register';
+
 
 function App() {
   return (
@@ -12,6 +14,7 @@ function App() {
         <Route path="/signin/admin" element={<AdminSignIn />} />
         <Route path="/dashboard" element={<h1>User Dashboard (Coming Soon)</h1>} />
         <Route path="/admin/dashboard" element={<h1>Admin Dashboard (Coming Soon)</h1>} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </Router>
   );
@@ -30,10 +33,11 @@ function Landing() {
       <div className="hero">
         <h1>Food Delivery Platform</h1>
         <p>Fast, reliable food delivery</p>
-        <div className="hero-buttons">
-          <a href="/signin/user" className="user-btn">Order Now</a>
-          <a href="/signin/admin" className="admin-btn">Admin</a>
-        </div>
+      <div className="hero-buttons">
+        <a href="/signin/user" className="user-btn">Order Now</a>
+        <a href="/register" className="user-btn">Register</a>
+        <a href="/signin/admin" className="admin-btn">Admin</a>
+      </div>
       </div>
     </>
   );
