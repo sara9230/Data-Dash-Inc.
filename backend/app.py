@@ -1,8 +1,17 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from database.models import db, User, Store, MenuItem, Order
 
 app = Flask(__name__)
 CORS(app)  # allow requests from React
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database/app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
 
 @app.route("/")
 def home():
