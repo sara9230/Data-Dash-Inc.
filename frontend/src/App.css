@@ -1,4 +1,14 @@
+/* App.css */
+
+/* #root no longer restricts width or adds padding.
+   Each page controls its own layout now. */
 #root {
+  min-height: 100vh;
+}
+
+/* ── Landing page styles ── */
+
+.landing-wrapper {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;

@@ -1,0 +1,363 @@
+/* ============================================================
+   AdminDashboard.css
+   Drop this in: frontend/src/styles/AdminDashboard.css
+   ============================================================ */
+
+/* Page background */
+.ad-page {
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Segoe UI', sans-serif;
+  color: #1e293b;
+}
+
+/* ── TOP BAR ── */
+.ad-topbar {
+  background: #1e293b;
+  color: white;
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ad-logo {
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Purple "Admin" pill */
+.ad-badge {
+  background: #4f46e5;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ad-logout {
+  background: transparent;
+  color: #f87171;
+  border: 1.5px solid #f87171;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.ad-logout:hover {
+  background: #f87171;
+  color: white;
+}
+
+/* ── MAIN CONTENT ── */
+.ad-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 36px 20px;
+}
+
+.ad-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.ad-sub {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* ── GREEN TOAST ── */
+.ad-toast {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ── STATS ROW ── */
+.ad-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.ad-stat {
+  background: white;
+  border-radius: 12px;
+  padding: 18px 26px;
+  flex: 1;
+  min-width: 120px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  border-top: 4px solid transparent; /* color set inline */
+}
+
+.ad-stat-num {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.ad-stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+/* ── TWO COLUMN GRID ── */
+.ad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .ad-grid { grid-template-columns: 1fr; }
+}
+
+/* ── CARD (shared by form + list) ── */
+.ad-card {
+  background: white;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+
+.ad-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 20px;
+}
+
+/* ── FORM ELEMENTS ── */
+.ad-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+
+.ad-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+  outline: none;
+  background: #f8fafc;
+  color: #1e293b;
+  transition: border-color 0.2s;
+}
+
+.ad-input:focus {
+  border-color: #4f46e5;
+  background: white;
+}
+
+/* Red border on invalid field */
+.ad-input-err {
+  border-color: #f87171 !important;
+  background: #fff5f5 !important;
+}
+
+/* Inline error message */
+.ad-err {
+  display: block;
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: -10px;
+  margin-bottom: 12px;
+}
+
+/* Add button */
+.ad-add-btn {
+  width: 100%;
+  padding: 13px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.2s;
+}
+
+.ad-add-btn:hover {
+  background: #4338ca;
+}
+
+/* ── RESTAURANT ROWS ── */
+.ad-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 36px 20px;
+  background: #f8fafc;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.ad-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+  flex-wrap: wrap;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+
+.ad-row:hover {
+  border-color: #c7d2fe;
+}
+
+.ad-row-info { flex: 1; }
+
+.ad-row-name {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.ad-row-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ad-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Status badges */
+.ad-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.ad-open   { background: #dcfce7; color: #16a34a; }
+.ad-closed { background: #fee2e2; color: #dc2626; }
+
+/* Remove button */
+.ad-remove-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.ad-remove-btn:hover { background: #fca5a5; }
+
+/* ── CONFIRM MODAL ── */
+.ad-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ad-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 36px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+}
+
+.ad-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.ad-modal-text {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.ad-modal-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.ad-cancel-btn {
+  padding: 10px 22px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #475569;
+  transition: background 0.2s;
+}
+
+.ad-cancel-btn:hover { background: #f1f5f9; }
+
+.ad-confirm-btn {
+  padding: 10px 22px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ad-confirm-btn:hover { background: #b91c1c; }
+
+/* Red error banner (shown when server call fails) */
+.ad-error-banner {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}

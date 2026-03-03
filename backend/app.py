@@ -1,9 +1,19 @@
+# ============================================================
+# backend/app.py
+#
+# This is the main Flask server file.
+# It defines all the API "routes" — URLs that the
+# React frontend can call to get or send data.
+#
+# Each @app.route(...) is one endpoint (URL).
+# ============================================================
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from database.models import db, User, Store, MenuItem, Order
 
 app = Flask(__name__)
-CORS(app)  # allow requests from React
+CORS(app)  # allow requests from the React frontend (different port)
 
 import os
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -12,8 +22,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
+# Create all tables when the server starts (if they don't exist yet)
 with app.app_context():
     db.create_all()
+
+
+# ============================================================
+# GENERAL ROUTES
+# ============================================================
 
 @app.route("/")
 def home():
@@ -22,33 +38,51 @@ def home():
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok"})
-@app.route("/api/user/signin",methods=["POST"])
+
+
+# ============================================================
+# AUTH ROUTES
+# ============================================================
+
+# POST /api/user/signin
+# Body: { "username": "...", "password": "..." }
+# Returns: a token if successful
+@app.route("/api/user/signin", methods=["POST"])
 def user_signin():
-    data = request.get_json()
+    data     = request.get_json()
     username = data.get("username")
     password = data.get("password")
 
     if username and password:
-       return jsonify({"token":"user-token-123","message":"User sign-in successful"}),200
+        return jsonify({"token": "user-token-123", "message": "User sign-in successful"}), 200
     return jsonify({"message": "Username and password are required"}), 400
-@app.route("/api/admin/signin",methods=["POST"])
+
+
+# POST /api/admin/signin
+# Body: { "username": "...", "password": "..." }
+# Returns: a token if successful
+@app.route("/api/admin/signin", methods=["POST"])
 def admin_signin():
-    data = request.get_json()
+    data     = request.get_json()
     username = data.get("username")
     password = data.get("password")
 
     if username and password:
-         return jsonify({"token":"admin-token-456","message":"Admin sign-in successful"}),200
+        return jsonify({"token": "admin-token-456", "message": "Admin sign-in successful"}), 200
     return jsonify({"message": "Username and password are required"}), 400
 
+
+# POST /api/register
+# Body: { "username": "...", "password": "...", "role": "customer" }
+# Creates a new user in the database
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.get_json()
+    data     = request.get_json()
     username = data.get("username")
     password = data.get("password")
-    role = data.get("role", "customer")  # default to customer if not specified
+    role     = data.get("role", "customer")  # default to "customer" if not provided
 
-    # Check if username already exists
+    # Check if that username is already taken
     if User.query.filter_by(username=username).first():
         return jsonify({"message": "Username already taken"}), 400
 
@@ -58,6 +92,89 @@ def register():
 
     return jsonify({"message": "Registered successfully!"}), 201
 
+
+# ============================================================
+# STORE (RESTAURANT) ROUTES
+# These are used by the Admin Dashboard
+# ============================================================
+
+# ------------------------------------------------------------------
+# GET /api/stores
+# Returns a list of ALL stores in the database.
+# The frontend calls this when the admin dashboard loads.
+# ------------------------------------------------------------------
+@app.route("/api/stores", methods=["GET"])
+def get_stores():
+    stores = Store.query.all()  # fetch every row from the Store table
+
+    # Convert each Store object into a plain dictionary so we can send it as JSON
+    result = []
+    for store in stores:
+        result.append({
+            "id":       store.id,
+            "name":     store.name,
+            "category": store.category,
+            "address":  store.address,
+            "phone":    store.phone,
+            "status":   store.status
+        })
+
+    return jsonify(result), 200
+
+
+# ------------------------------------------------------------------
+# POST /api/stores
+# Adds a NEW store to the database.
+# Body: { "name": "...", "category": "...", "address": "...", "phone": "...", "status": "Open" }
+# ------------------------------------------------------------------
+@app.route("/api/stores", methods=["POST"])
+def add_store():
+    data = request.get_json()
+
+    # Make sure the required fields are present
+    name = data.get("name")
+    if not name:
+        return jsonify({"message": "Store name is required"}), 400
+
+    new_store = Store(
+        name     = name,
+        category = data.get("category", ""),
+        address  = data.get("address", ""),
+        phone    = data.get("phone", ""),
+        status   = data.get("status", "Open")
+    )
+
+    db.session.add(new_store)    # stage the new row
+    db.session.commit()          # save it to the database
+
+    return jsonify({
+        "message": "Store added successfully!",
+        "id":      new_store.id  # send back the new ID so the frontend can use it
+    }), 201
+
+
+# ------------------------------------------------------------------
+# DELETE /api/stores/<id>
+# Deletes the store with the given ID.
+# Example: DELETE /api/stores/3  →  deletes store with id=3
+# ------------------------------------------------------------------
+@app.route("/api/stores/<int:store_id>", methods=["DELETE"])
+def delete_store(store_id):
+    # Try to find the store — if it doesn't exist, return 404
+    store = Store.query.get(store_id)
+
+    if not store:
+        return jsonify({"message": "Store not found"}), 404
+
+    db.session.delete(store)  # mark it for deletion
+    db.session.commit()        # save the change
+
+    return jsonify({"message": f'"{store.name}" was deleted successfully'}), 200
+
+
+# ============================================================
+# START THE SERVER
+# ============================================================
 
 if __name__ == "__main__":
     app.run(debug=True)
