@@ -74,13 +74,13 @@ nav a:hover {
 }
 
 .user-btn {
-  background: #667eea;
+  background: #0b7ae2;
   color: white;
 }
 
 .admin-btn {
-  background: #f0f0f0;
-  color: #333;
+  background: #0b7ae2;
+  color: white;
 }
 
 .user-btn:hover, .admin-btn:hover {
@@ -88,7 +88,7 @@ nav a:hover {
 }
 
 .driver-btn {
-  background: #f59e0b;
+  background: #0b7ae2;
   color: white;
   padding: 10px 20px;
   border-radius: 5px;
