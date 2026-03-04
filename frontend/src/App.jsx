@@ -27,7 +27,9 @@ function Landing() {
   return (
     <div className="landing-wrapper">
       <nav>
-        <div className="logo">Data Dash 🍔</div>
+        <div className="logo">
+        <img src="/data-dash-logo.png/Data Dash.png" alt="Dat Dash" style={{ height: '60px' }} />
+       </div>
         <ul className="nav-links">
           <li><a href="#about">About</a></li>
           <li><a href="#features">Features</a></li>
