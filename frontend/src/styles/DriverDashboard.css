@@ -1,0 +1,276 @@
+/* DriverDashboard.css */
+/* Drop in: frontend/src/styles/DriverDashboard.css */
+
+.dd-page {
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Segoe UI', sans-serif;
+  color: #1e293b;
+}
+
+/* ── TOP BAR ── */
+.dd-topbar {
+  background: #1e293b;
+  color: white;
+  padding: 14px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dd-logo {
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dd-badge {
+  background: #f59e0b;
+  color: #1e293b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dd-logout {
+  background: transparent;
+  color: #f87171;
+  border: 1.5px solid #f87171;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  width: auto;
+  margin: 0;
+}
+
+.dd-logout:hover {
+  background: #f87171;
+  color: white;
+  transform: none;
+}
+
+/* ── MAIN ── */
+.dd-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 36px 20px;
+}
+
+.dd-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.dd-sub {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* ── TOAST / ERROR ── */
+.dd-toast {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dd-error-banner {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ── STATS ── */
+.dd-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.dd-stat {
+  background: white;
+  border-radius: 12px;
+  padding: 18px 26px;
+  flex: 1;
+  min-width: 120px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  border-top: 4px solid transparent;
+}
+
+.dd-stat-num {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.dd-stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+/* ── TABS ── */
+.dd-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.dd-tab {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: auto;
+  margin: 0;
+}
+
+.dd-tab:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  transform: none;
+}
+
+.dd-tab-active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: white !important;
+}
+
+.dd-tab-active:hover {
+  color: white !important;
+  transform: none;
+}
+
+/* ── CARD ── */
+.dd-card {
+  background: white;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+
+.dd-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 36px 20px;
+  background: #f8fafc;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+/* ── ORDER ROWS ── */
+.dd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+  flex-wrap: wrap;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+
+.dd-row:hover { border-color: #fde68a; }
+
+.dd-row-info { flex: 1; }
+
+.dd-row-name {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.dd-row-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dd-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── STATUS BADGES ── */
+.dd-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.dd-status-pending   { background: #fef9c3; color: #a16207; }
+.dd-status-accepted  { background: #e0e7ff; color: #3730a3; }
+.dd-status-delivered { background: #dcfce7; color: #16a34a; }
+
+/* ── BUTTONS ── */
+.dd-accept-btn {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  width: auto;
+  margin: 0;
+}
+
+.dd-accept-btn:hover {
+  background: #d97706;
+  transform: none;
+}
+
+.dd-deliver-btn {
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  width: auto;
+  margin: 0;
+}
+
+.dd-deliver-btn:hover {
+  background: #15803d;
+  transform: none;
+}

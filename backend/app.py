@@ -82,6 +82,12 @@ def register():
     password = data.get("password")
     role     = data.get("role", "customer")  # default to "customer" if not provided
 
+    if not username or not password:
+        return jsonify({"message": "Username and password are required"}), 400
+
+    if role not in ("customer", "driver", "admin"):
+        return jsonify({"message": "Invalid role"}), 400
+
     # Check if that username is already taken
     if User.query.filter_by(username=username).first():
         return jsonify({"message": "Username already taken"}), 400
@@ -171,6 +177,68 @@ def delete_store(store_id):
 
     return jsonify({"message": f'"{store.name}" was deleted successfully'}), 200
 
+
+# ============================================================
+# ORDER ROUTES (used by Driver Dashboard)
+# ============================================================
+
+# GET /api/orders
+# Returns all orders (drivers use this to see pending ones)
+@app.route("/api/orders", methods=["GET"])
+def get_orders():
+    orders = Order.query.all()
+    result = []
+    for order in orders:
+        # Look up the store name for a friendlier display
+        store = Store.query.get(order.store_id)
+        result.append({
+            "id":          order.id,
+            "status":      order.status,
+            "customer_id": order.customer_id,
+            "store_id":    order.store_id,
+            "store_name":  store.name if store else None,
+            "driver_id":   order.driver_id,
+        })
+    return jsonify(result), 200
+
+
+# POST /api/orders/<id>/accept
+# Driver accepts a pending order
+# Body: { "driver_id": 1 }
+@app.route("/api/orders/<int:order_id>/accept", methods=["POST"])
+def accept_order(order_id):
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({"message": "Order not found"}), 404
+    if order.status != "pending":
+        return jsonify({"message": "Order is no longer available"}), 400
+
+    data = request.get_json()
+    driver_id = data.get("driver_id")
+    if not driver_id:
+        return jsonify({"message": "driver_id is required"}), 400
+
+    order.status    = "accepted"
+    order.driver_id = driver_id
+    db.session.commit()
+
+    return jsonify({"message": "Order accepted!"}), 200
+
+
+# POST /api/orders/<id>/deliver
+# Driver marks an order as delivered
+@app.route("/api/orders/<int:order_id>/deliver", methods=["POST"])
+def deliver_order(order_id):
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({"message": "Order not found"}), 404
+    if order.status != "accepted":
+        return jsonify({"message": "Order must be accepted before marking delivered"}), 400
+
+    order.status = "delivered"
+    db.session.commit()
+
+    return jsonify({"message": "Order marked as delivered!"}), 200
 
 # ============================================================
 # START THE SERVER

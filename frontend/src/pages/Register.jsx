@@ -2,24 +2,36 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/SignIn.css';
 
+const ROLES = [
+  { value: 'customer', label: 'Customer', desc: 'Order food from restaurants' },
+  { value: 'driver',   label: 'Driver',   desc: 'Deliver orders and earn' },
+  { value: 'admin',    label: 'Admin',     desc: 'Manage the platform' },
+];
+
+
 function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [role,     setRole]     = useState('customer');
+  const [error,    setError]    = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
     const response = await fetch('http://127.0.0.1:5000/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, role: 'customer' }),
+      body: JSON.stringify({ username, password, role }),
     });
 
     if (response.ok) {
-      navigate('/signin/user');
+      if (role === 'admin')  navigate('/signin/admin');
+      else                   navigate('/signin/user');
     } else {
-      alert('Registration failed. Try a different username.');
+      const data = await response.json();
+      setError(data.message || 'Registration failed. Try a different username.');
     }
   };
 
@@ -27,6 +39,18 @@ function Register() {
     <div className="signin-container">
       <div className="signin-box">
         <h1>Create Account</h1>
+                <div className="role-selector">
+          {ROLES.map((r) => (
+            <div
+              key={r.value}
+              className={`role-option ${role === r.value ? 'role-selected' : ''}`}
+              onClick={() => setRole(r.value)}
+            >
+              <span className="role-label">{r.label}</span>
+              <span className="role-desc">{r.desc}</span>
+            </div>
+          ))}
+        </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Username</label>

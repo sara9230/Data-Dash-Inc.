@@ -86,3 +86,16 @@ nav a:hover {
 .user-btn:hover, .admin-btn:hover {
   opacity: 0.9;
 }
+
+.driver-btn {
+  background: #f59e0b;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.driver-btn:hover {
+  opacity: 0.9;
+}

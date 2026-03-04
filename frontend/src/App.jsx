@@ -5,6 +5,7 @@ import UserSignIn from './pages/UserSignIn';
 import AdminSignIn from './pages/AdminSignIn';
 import AdminDashboard from './pages/AdminDashBoard';
 import Register from './pages/Register';
+import DriverDashboard from './pages/DriverDashboard';
 import './App.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/dashboard"       element={<h1>User Dashboard (Coming Soon)</h1>} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/register"        element={<Register />} />
+        <Route path="/driver/dashboard" element={<DriverDashboard />} />
       </Routes>
     </Router>
   );
@@ -42,6 +44,7 @@ function Landing() {
           <a href="/signin/user"  className="user-btn">Order Now</a>
           <a href="/register"     className="user-btn">Register</a>
           <a href="/signin/admin" className="admin-btn">Admin</a>
+          <a href="/driver/dashboard" className="driver-btn">Driver</a>
         </div>
       </div>
     </div>
