@@ -30,40 +30,44 @@ function AdminSignIn() {
       } else {
         setError(data.message || 'Sign in failed');
       }
-    } catch (err) {
+    } catch {
       setError('Error connecting to server');
     }
   };
 
-  return (
-    <div className="signin-container">
-      <div className="signin-box">
-        <h1>Admin Sign In</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && <p className="error">{error}</p>}
-          <button type="submit">Sign In</button>
-        </form>
-        <p className="signin-link">
-          User? <a href="/signin/user">Sign in as User</a>
+    return (
+    <div className="signin-wrapper">
+      <div className="signin-left">
+        <a href="/" className="signin-left-logo">DataDash</a>
+        <h2 className="signin-left-headline">
+          Manage your<br />
+          <em>restaurants.</em>
+        </h2>
+        <p className="signin-left-sub">
+          Add stores, track orders, and keep the platform running smoothly.
         </p>
+        <div className="signin-left-illustration">🏪</div>
+      </div>
+
+      <div className="signin-right">
+        <div className="signin-box">
+          <a href="/" className="signin-back">← Back to home</a>
+          <h1>Admin portal</h1>
+          <p className="signin-subtitle">Sign in with your admin credentials.</p>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Username</label>
+              <input type="text" placeholder="admin_username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            {error && <p className="error">{error}</p>}
+            <button type="submit">Sign in as admin</button>
+          </form>
+          <p className="signin-link">Not an admin? <a href="/signin/user">Customer sign in</a></p>
+        </div>
       </div>
     </div>
   );

@@ -35,36 +35,47 @@ function Register() {
     }
   };
 
-  return (
-    <div className="signin-container">
-      <div className="signin-box">
-        <h1>Create Account</h1>
-                <div className="role-selector">
-          {ROLES.map((r) => (
-            <div
-              key={r.value}
-              className={`role-option ${role === r.value ? 'role-selected' : ''}`}
-              onClick={() => setRole(r.value)}
-            >
-              <span className="role-label">{r.label}</span>
-              <span className="role-desc">{r.desc}</span>
-            </div>
-          ))}
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Username</label>
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
-          <button type="submit">Register</button>
-        </form>
-        <p className="signin-link">
-          Already have an account? <a href="/signin/user">Sign In</a>
+    return (
+    <div className="signin-wrapper">
+      <div className="signin-left">
+        <a href="/" className="signin-left-logo">DataDash</a>
+        <h2 className="signin-left-headline">
+          Join the<br />
+          <em>community.</em>
+        </h2>
+        <p className="signin-left-sub">
+          Customers, drivers, and restaurants — all on one platform.
         </p>
+        <div className="signin-left-illustration">🚀</div>
+      </div>
+
+      <div className="signin-right">
+        <div className="signin-box">
+          <a href="/" className="signin-back">← Back to home</a>
+          <h1>Create account</h1>
+          <p className="signin-subtitle">Choose your role and get started.</p>
+          <div className="role-selector">
+            {ROLES.map((r) => (
+              <div key={r.value} className={`role-option ${role === r.value ? 'role-selected' : ''}`} onClick={() => setRole(r.value)}>
+                <span className="role-label">{r.label}</span>
+                <span className="role-desc">{r.desc}</span>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Username</label>
+              <input type="text" placeholder="choose_a_username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            {error && <p className="error">{error}</p>}
+            <button type="submit">Create account</button>
+          </form>
+          <p className="signin-link">Already have an account? <a href="/signin/user">Sign in</a></p>
+        </div>
       </div>
     </div>
   );
