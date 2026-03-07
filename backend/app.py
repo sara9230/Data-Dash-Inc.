@@ -98,7 +98,6 @@ def register():
 
     return jsonify({"message": "Registered successfully!"}), 201
 
-
 # ============================================================
 # STORE (RESTAURANT) ROUTES
 # These are used by the Admin Dashboard
@@ -123,6 +122,29 @@ def get_stores():
             "address":  store.address,
             "phone":    store.phone,
             "status":   store.status
+        })
+
+    return jsonify(result), 200
+
+
+# ------------------------------------------------------------------
+# GET /api/stores/<id>/menu-items
+# Returns menu items for one store.
+# ------------------------------------------------------------------
+@app.route("/api/stores/<int:store_id>/menu-items", methods=["GET"])
+def get_store_menu_items(store_id):
+    store = Store.query.get(store_id)
+    if not store:
+        return jsonify({"message": "Store not found"}), 404
+
+    menu_items = MenuItem.query.filter_by(store_id=store_id).order_by(MenuItem.name.asc()).all()
+    result = []
+    for item in menu_items:
+        result.append({
+            "id": item.id,
+            "name": item.name,
+            "price": float(item.price),
+            "store_id": item.store_id,
         })
 
     return jsonify(result), 200
@@ -181,6 +203,65 @@ def delete_store(store_id):
 # ============================================================
 # ORDER ROUTES (used by Driver Dashboard)
 # ============================================================
+
+# POST /api/orders
+# Customer creates a new order
+# Body: { "store_id": 1, "customer_username": "alice" }
+# Alternate body: { "store_id": 1, "customer_id": 2 }
+@app.route("/api/orders", methods=["POST"])
+def create_order():
+    data = request.get_json() or {}
+
+    store_id = data.get("store_id")
+    if store_id is None:
+        return jsonify({"message": "store_id is required"}), 400
+
+    try:
+        store_id = int(store_id)
+    except (TypeError, ValueError):
+        return jsonify({"message": "store_id must be a number"}), 400
+
+    store = Store.query.get(store_id)
+    if not store:
+        return jsonify({"message": "Store not found"}), 404
+    if (store.status or "").lower() != "open":
+        return jsonify({"message": "This store is currently closed"}), 400
+
+    customer = None
+    customer_id = data.get("customer_id")
+    customer_username = data.get("customer_username")
+
+    if customer_id is not None:
+        try:
+            customer_id = int(customer_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "customer_id must be a number"}), 400
+        customer = User.query.get(customer_id)
+    elif customer_username:
+        customer = User.query.filter_by(username=customer_username).first()
+    else:
+        return jsonify({"message": "Provide customer_id or customer_username"}), 400
+
+    if not customer:
+        return jsonify({"message": "Customer not found"}), 404
+    if customer.role != "customer":
+        return jsonify({"message": "Only customers can place orders"}), 403
+
+    new_order = Order(
+        status="pending",
+        customer_id=customer.id,
+        store_id=store.id,
+        driver_id=None,
+    )
+
+    db.session.add(new_order)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Order placed successfully!",
+        "order_id": new_order.id,
+        "status": new_order.status,
+    }), 201
 
 # GET /api/orders
 # Returns all orders (drivers use this to see pending ones)

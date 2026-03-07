@@ -6,6 +6,7 @@ import AdminSignIn from './pages/AdminSignIn';
 import AdminDashboard from './pages/AdminDashBoard';
 import Register from './pages/Register';
 import DriverDashboard from './pages/DriverDashboard';
+import CustomerOrder from './pages/CustomerOrder';
 import './App.css';
 
 function App() {
@@ -15,7 +16,8 @@ function App() {
         <Route path="/"                element={<Landing />} />
         <Route path="/signin/user"     element={<UserSignIn />} />
         <Route path="/signin/admin"    element={<AdminSignIn />} />
-        <Route path="/dashboard"       element={<h1>User Dashboard (Coming Soon)</h1>} />
+        <Route path="/dashboard"       element={<CustomerOrder />} />
+        <Route path="/order"           element={<CustomerOrder />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/register"        element={<Register />} />
         <Route path="/driver/dashboard" element={<DriverDashboard />} />
