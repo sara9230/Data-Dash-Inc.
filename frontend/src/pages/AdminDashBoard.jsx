@@ -8,6 +8,7 @@ const API = 'http://127.0.0.1:5000';
 
 const CATEGORIES = ['Fast Food', 'Japanese', 'Italian', 'Chinese', 'Mexican', 'Indian', 'American', 'Other'];
 const EMPTY_FORM  = { name: '', category: '', address: '', phone: '', status: 'Open' };
+const EMPTY_ITEM_FORM = { storeId: '', name: '', description: '', price: '' }; 
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -21,6 +22,11 @@ export default function AdminDashboard() {
   const [toast,       setToast]       = useState('');
   const [loading,     setLoading]     = useState(true);
   const [apiError,    setApiError]    = useState('');
+  const [itemForm, setItemForm] = useState(EMPTY_ITEM_FORM);
+  const [itemErrors, setItemErrors] = useState({});
+  const [selectedMenuStoreId, setSelectedMenuStoreId] = useState('');
+  const [menuItems, setMenuItems] = useState([]);
+  const [loadingMenuItems, setLoadingMenuItems] = useState(false);
 
   // ── fetchStores is defined FIRST so useEffect can call it below ──
   async function fetchStores() {
@@ -127,6 +133,107 @@ export default function AdminDashboard() {
     navigate('/signin/admin');
   }
 
+  function handleItemChange(e) {
+  const { name, value } = e.target;
+  setItemForm((prev) => ({ ...prev, [name]: value }));
+  setItemErrors((prev) => ({ ...prev, [name]: '' }));
+}
+
+function validateItemForm() {
+  const errs = {};
+  if (!itemForm.storeId) errs.storeId = 'Select a store.';
+  if (!itemForm.name.trim()) errs.name = 'Item name is required.';
+  if (!itemForm.description.trim()) errs.description = 'Description is required.';
+  if (!itemForm.price.trim()) errs.price = 'Price is required.';
+  else if (isNaN(itemForm.price)) errs.price = 'Price must be a number.';
+  return errs;
+}
+
+async function handleAddMenuItem() {
+  const errs = validateItemForm();
+  if (Object.keys(errs).length > 0) {
+    setItemErrors(errs);
+    return;
+  }
+
+  setApiError('');
+
+  try {
+    const response = await fetch(`${API}/api/stores/${itemForm.storeId}/menu-items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: itemForm.name,
+        description: itemForm.description,
+        price: itemForm.price,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      showToast(`"${itemForm.name}" added to menu!`);
+      if (String(selectedMenuStoreId) === String(itemForm.storeId)) {
+        fetchMenuItemsForStore(itemForm.storeId);
+      }
+      setItemForm(EMPTY_ITEM_FORM);
+      setItemErrors({});
+    } else {
+      setApiError(data.message || 'Failed to add menu item.');
+    }
+  } catch {
+    setApiError('Could not connect to the server.');
+  }
+  }
+
+    async function fetchMenuItemsForStore(storeId) {
+    if (!storeId) {
+      setMenuItems([]);
+      return;
+    }
+
+    setLoadingMenuItems(true);
+    setApiError('');
+
+    try {
+      const response = await fetch(`${API}/api/stores/${storeId}/menu-items`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setMenuItems(Array.isArray(data) ? data : []);
+      } else {
+        setApiError(data.message || 'Failed to load menu items.');
+        setMenuItems([]);
+      }
+    } catch {
+      setApiError('Could not connect to the server.');
+      setMenuItems([]);
+    }
+
+    setLoadingMenuItems(false);
+  }
+
+    async function handleDeleteMenuItem(itemId) {
+    setApiError('');
+
+    try {
+      const response = await fetch(`${API}/api/menu-items/${itemId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMenuItems((prev) => prev.filter((item) => item.id !== itemId));
+        showToast(data.message || 'Menu item removed.');
+      } else {
+        setApiError(data.message || 'Failed to remove menu item.');
+      }
+    } catch {
+      setApiError('Could not connect to the server.');
+    }
+  }
+
   // ── RENDER ──
   return (
     <div className="ad-page">
@@ -210,6 +317,112 @@ export default function AdminDashboard() {
             </select>
 
             <button className="ad-add-btn" onClick={handleAdd}>+ Add Restaurant</button>
+          </div>
+
+          {/* Menu Item Form */}
+          <div className="ad-card">
+            <h2 className="ad-card-title">🍽 Add Menu Item</h2>
+
+            <label className="ad-label">Store *</label>
+            <select
+              className={`ad-input ${itemErrors.storeId ? 'ad-input-err' : ''}`}
+              name="storeId"
+              value={itemForm.storeId}
+              onChange={handleItemChange}
+            >
+              <option value="">-- Select Store --</option>
+              {restaurants.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            {itemErrors.storeId && <span className="ad-err">{itemErrors.storeId}</span>}
+
+            <label className="ad-label">Item Name *</label>
+            <input
+              className={`ad-input ${itemErrors.name ? 'ad-input-err' : ''}`}
+              name="name"
+              placeholder="e.g. Cheeseburger"
+              value={itemForm.name}
+              onChange={handleItemChange}
+            />
+            {itemErrors.name && <span className="ad-err">{itemErrors.name}</span>}
+
+            <label className="ad-label">Description *</label>
+            <input
+              className={`ad-input ${itemErrors.description ? 'ad-input-err' : ''}`}
+              name="description"
+              placeholder="e.g. Beef patty with cheddar and house sauce"
+              value={itemForm.description}
+              onChange={handleItemChange}
+            />
+            {itemErrors.description && <span className="ad-err">{itemErrors.description}</span>}
+
+            <label className="ad-label">Price *</label>
+            <input
+              className={`ad-input ${itemErrors.price ? 'ad-input-err' : ''}`}
+              name="price"
+              placeholder="e.g. 9.99"
+              value={itemForm.price}
+              onChange={handleItemChange}
+            />
+            {itemErrors.price && <span className="ad-err">{itemErrors.price}</span>}
+
+            <button className="ad-add-btn" onClick={handleAddMenuItem}>
+              + Add Menu Item
+            </button>
+          </div>
+
+                    {/* Menu Item List */}
+          <div className="ad-card">
+            <h2 className="ad-card-title">🧾 Manage Menu Items</h2>
+
+            <label className="ad-label">Select Store</label>
+            <select
+              className="ad-input"
+              value={selectedMenuStoreId}
+              onChange={(e) => {
+                const storeId = e.target.value;
+                setSelectedMenuStoreId(storeId);
+                fetchMenuItemsForStore(storeId);
+              }}
+            >
+              <option value="">-- Select Store --</option>
+              {restaurants.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+
+            {loadingMenuItems && <div className="ad-empty">Loading menu items...</div>}
+
+            {!loadingMenuItems && selectedMenuStoreId && menuItems.length === 0 && (
+              <div className="ad-empty">No menu items for this store yet.</div>
+            )}
+
+            {!loadingMenuItems && menuItems.map((item) => (
+              <div key={item.id} className="ad-row">
+                <div className="ad-row-info">
+                  <div className="ad-row-name">
+                    {item.name} — ${Number(item.price).toFixed(2)}
+                  </div>
+                  <div className="ad-row-meta">
+                    {item.description || 'No description'}
+                  </div>
+                </div>
+
+                <div className="ad-row-right">
+                  <button
+                    className="ad-remove-btn"
+                    onClick={() => handleDeleteMenuItem(item.id)}
+                  >
+                    🗑 Remove
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Restaurant List */}

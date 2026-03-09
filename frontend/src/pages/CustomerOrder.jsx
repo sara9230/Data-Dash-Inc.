@@ -88,6 +88,7 @@ export default function CustomerOrder() {
           ? data.map((item) => ({
               id: item.id,
               name: item.name,
+              description: item.description || '',
               price: Number(item.price) || 0,
               store_id: item.store_id,
             }))
@@ -205,6 +206,7 @@ export default function CustomerOrder() {
             {menuItems.map((item) => (
               <li key={item.id}>
                 {item.name} - {toCurrency(item.price)}{' '}
+                {item.description}{' '}
                 <button type="button" onClick={() => addToCart(item)}>Add</button>
               </li>
             ))}

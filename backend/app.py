@@ -143,12 +143,69 @@ def get_store_menu_items(store_id):
         result.append({
             "id": item.id,
             "name": item.name,
+            "description" : item.description,
             "price": float(item.price),
             "store_id": item.store_id,
         })
 
     return jsonify(result), 200
 
+# ------------------------------------------------------------------
+# DELETE /api/menu-items/<id>
+# Deletes one menu item by ID
+# ------------------------------------------------------------------
+@app.route("/api/menu-items/<int:item_id>", methods=["DELETE"])
+def delete_menu_item(item_id):
+    item = MenuItem.query.get(item_id)
+
+    if not item:
+        return jsonify({"message": "Menu item not found"}), 404
+
+    db.session.delete(item)
+    db.session.commit()
+
+    return jsonify({"message": f'"{item.name}" was deleted successfully'}), 200
+
+# ------------------------------------------------------------------
+# POST /api/stores/<store_id>/menu-items
+# Adds new menu tiem to the specific store
+# ------------------------------------------------------------------
+@app.route("/api/stores/<int:store_id>/menu-items", methods=["POST"])
+def add_menu_item(store_id):
+    store = Store.query.get(store_id)
+    if not store:
+        return jsonify({"message": "Store not found"}), 404
+
+    data = request.get_json() or {}
+
+    name = data.get("name")
+    description = data.get("description", "")
+    price = data.get("price")
+
+    if not name:
+        return jsonify({"message": "Item name is required"}), 400
+    if price is None:
+        return jsonify({"message": "Price is required"}), 400
+
+    try:
+        price = float(price)
+    except (TypeError, ValueError):
+        return jsonify({"message": "Price must be a number"}), 400
+
+    new_item = MenuItem(
+        name=name,
+        description=description,
+        price=price,
+        store_id=store_id,
+    )
+
+    db.session.add(new_item)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Menu item added successfully!",
+        "id": new_item.id
+    }), 201
 
 # ------------------------------------------------------------------
 # POST /api/stores
