@@ -51,6 +51,35 @@ class TestRegisterRoute(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
+    # test that checks that a user can successfully register
+    # captures username, password and role. succesfully creates and stores the user
+    def test_register_success(self):
+        """
+        Tests Task 1 and Task 5:
+        - Capture valid username, password, and role from the request
+        - Create and store the new user successfully
+
+
+        This test sends a valid registration request and checks that:
+        - the backend returns status code 201
+        - the success message is correct
+        - the user was actually added to the database
+        """
+        response = self.client.post("/api/register", json={
+            "username": "cindy",
+            "password": "1234",
+            "role": "customer"
+        })
+
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.get_json()["message"], "Registered successfully!")
+
+
+        with app.app_context():
+            user = User.query.filter_by(username="cindy").first()
+            self.assertIsNotNone(user)
+            self.assertEqual(user.role, "customer")
 
 
 if __name__ == "__main__":
