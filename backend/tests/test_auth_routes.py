@@ -101,6 +101,28 @@ class TestRegisterRoute(unittest.TestCase):
             response.get_json()["message"],
             "Username and password are required"
         )
+        
+    # test checks that invalid roles are rejected
+    def test_register_invalid_role(self):
+        """
+        Tests Task 3:
+        - Validate that the role must be customer, driver, or admin
+
+
+        This test sends an invalid role ("manager").
+        The backend should reject it with status code 400.
+        """
+        response = self.client.post("/api/register", json={
+            "username": "cindy",
+            "password": "1234",
+            "role": "manager"
+        })
+
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["message"], "Invalid role")
+
+
 
 
 
