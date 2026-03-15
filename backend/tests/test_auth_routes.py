@@ -101,7 +101,7 @@ class TestRegisterRoute(unittest.TestCase):
             response.get_json()["message"],
             "Username and password are required"
         )
-        
+
     # test checks that invalid roles are rejected
     def test_register_invalid_role(self):
         """
@@ -121,11 +121,38 @@ class TestRegisterRoute(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["message"], "Invalid role")
+        
+    # tests that it rejects when you try to create a new user when a
+    # username is already taken. backend is expected prevent duplicate usernames
+    def test_register_duplicate_username(self):
+        """
+        Tests Task 4:
+        - Check if the username already exists in the database
 
 
+        This test first inserts a user into the database manually.
+        Then it tries to register another user with the same username.
+        The backend should reject the duplicate username with status code 400.
+        """
+        with app.app_context():
+            existing_user = User(
+                username="cindy",
+                password="oldpass",
+                role="customer"
+            )
+            db.session.add(existing_user)
+            db.session.commit()
 
 
+        response = self.client.post("/api/register", json={
+            "username": "cindy",
+            "password": "1234",
+            "role": "customer"
+        })
 
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["message"], "Username already taken")
 
 if __name__ == "__main__":
     unittest.main()
