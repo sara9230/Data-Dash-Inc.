@@ -81,6 +81,29 @@ class TestRegisterRoute(unittest.TestCase):
             self.assertIsNotNone(user)
             self.assertEqual(user.role, "customer")
 
+    # test that the backend rejects a registration request if the password is missing
+    def test_register_missing_required_fields(self):
+        """
+        Tests Task 2:
+        - Validate that username and password are required
+
+
+        This test sends incomplete registration data with no password.
+        The backend should reject the request and return status code 400.
+        """
+        response = self.client.post("/api/register", json={
+            "username": "cindy"
+        })
+
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.get_json()["message"],
+            "Username and password are required"
+        )
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
