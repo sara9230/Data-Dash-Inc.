@@ -14,7 +14,7 @@ from database.models import db, User
 
 class TestRegisterRoute(unittest.TestCase):
     """
-    This test class focuses only on the /api/register route.
+    This test class focuses only on the /api/register route
 
     The task list is: 
     Task 1: Capture username, password, and role from the request
@@ -51,8 +51,9 @@ class TestRegisterRoute(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    # test that checks that a user can successfully register
-    # captures username, password and role. succesfully creates and stores the user
+    # test that checks if a user can successfully register. Ensuring it 
+    # captures username, password and role. And that it successfully 
+    # creates and stores the user
     def test_register_success(self):
         """
         Tests Task 1 and Task 5:
@@ -121,7 +122,7 @@ class TestRegisterRoute(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get_json()["message"], "Invalid role")
-        
+
     # tests that it rejects when you try to create a new user when a
     # username is already taken. backend is expected prevent duplicate usernames
     def test_register_duplicate_username(self):
