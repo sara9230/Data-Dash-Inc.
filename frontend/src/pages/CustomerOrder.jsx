@@ -19,6 +19,7 @@ export default function CustomerOrder() {
   const [cartItems, setCartItems] = useState([]);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   const username = localStorage.getItem('username') || '';
 
@@ -158,6 +159,12 @@ export default function CustomerOrder() {
     navigate('/signin/user');
   }
 
+  const filteredStores = openStores.filter(
+  (store) =>
+    store.name.toLowerCase().includes(search.toLowerCase()) ||
+    (store.category || '').toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div>
       <header>
@@ -172,15 +179,33 @@ export default function CustomerOrder() {
       {error && <p>{error}</p>}
 
       <section>
-        <h2>1. Choose Restaurant</h2>
+    `  <h2>1. Choose Restaurant</h2>
         <button type="button" onClick={fetchStores}>Refresh Restaurants</button>
+
+        <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+          <input
+            type="text"
+            placeholder="Search restaurants..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              padding: '8px',
+              width: '250px',
+              borderRadius: '6px',
+              border: '1px solid #ccc'
+            }}
+          />
+        </div>
 
         {loadingStores && <p>Loading restaurants...</p>}
         {!loadingStores && openStores.length === 0 && <p>No open restaurants found.</p>}
+        {!loadingStores && openStores.length > 0 && filteredStores.length === 0 && (
+          <p>No restaurants match your search.</p>
+        )}
 
-        {!loadingStores && openStores.length > 0 && (
+        {!loadingStores && filteredStores.length > 0 && (
           <ul>
-            {openStores.map((store) => (
+            {filteredStores.map((store) => (
               <li key={store.id}>
                 <button type="button" onClick={() => setSelectedStoreId(store.id)}>
                   {selectedStoreId === store.id ? 'Selected: ' : ''}
@@ -191,28 +216,28 @@ export default function CustomerOrder() {
           </ul>
         )}
       </section>
+  
+        <hr />
 
-      <hr />
+        <section>
+          <h2>2. Menu Items</h2>
+          {!selectedStore && <p>Select a restaurant to view menu.</p>}
+          {selectedStore && <p>Store: <strong>{selectedStore.name}</strong></p>}
+          {selectedStore && loadingMenu && <p>Loading menu items...</p>}
+          {selectedStore && !loadingMenu && menuItems.length === 0 && <p>No menu items found for this store.</p>}
 
-      <section>
-        <h2>2. Menu Items</h2>
-        {!selectedStore && <p>Select a restaurant to view menu.</p>}
-        {selectedStore && <p>Store: <strong>{selectedStore.name}</strong></p>}
-        {selectedStore && loadingMenu && <p>Loading menu items...</p>}
-        {selectedStore && !loadingMenu && menuItems.length === 0 && <p>No menu items found for this store.</p>}
-
-        {selectedStore && !loadingMenu && menuItems.length > 0 && (
-          <ul>
-            {menuItems.map((item) => (
-              <li key={item.id}>
-                {item.name} - {toCurrency(item.price)}{' '}
-                {item.description}{' '}
-                <button type="button" onClick={() => addToCart(item)}>Add</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          {selectedStore && !loadingMenu && menuItems.length > 0 && (
+            <ul>
+              {menuItems.map((item) => (
+                <li key={item.id}>
+                  {item.name} - {toCurrency(item.price)}{' '}
+                  {item.description}{' '}
+                  <button type="button" onClick={() => addToCart(item)}>Add</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
       <hr />
 
