@@ -54,9 +54,8 @@ def user_signin():
     password = data.get("password")
 
     if username and password:
-        return jsonify({"token": "user-token-123", "message": "User sign-in successful"}), 200
+        return jsonify({"token": "user-token-123", "username": username, "message": "User sign-in successful"}), 200
     return jsonify({"message": "Username and password are required"}), 400
-
 
 # POST /api/admin/signin
 # Body: { "username": "...", "password": "..." }
@@ -308,10 +307,11 @@ def create_order():
         return jsonify({"message": "Only customers can place orders"}), 403
 
     new_order = Order(
-        status="pending",
-        customer_id=customer.id,
-        store_id=store.id,
-        driver_id=None,
+    status="pending",
+    customer_id=customer.id,
+    store_id=store.id,
+    driver_id=None,
+    total_price=data.get("total_price", 0.0),  # add this
     )
 
     db.session.add(new_order)

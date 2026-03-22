@@ -38,7 +38,8 @@ class MenuItem(db.Model):
 
 class Order(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
-    status      = db.Column(db.String(50), default='pending')  # pending → accepted → delivered
+    status      = db.Column(db.String(50), default='pending')
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     store_id    = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
     driver_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    total_price = db.Column(db.Float, nullable=False, default=0.0)  # add this

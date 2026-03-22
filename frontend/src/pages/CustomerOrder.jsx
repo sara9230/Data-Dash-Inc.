@@ -181,7 +181,8 @@ export default function CustomerOrder() {
     const role = localStorage.getItem('role');
     if (role !== 'user') { navigate('/signin/user'); return; }
     fetchStores();
-  }, [navigate, fetchStores]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openStores = useMemo(() => stores.filter((s) => (s.status || '').toLowerCase() === 'open'), [stores]);
   const selectedStore = useMemo(() => openStores.find((s) => s.id === selectedStoreId) || null, [openStores, selectedStoreId]);
@@ -199,9 +200,13 @@ export default function CustomerOrder() {
   }, []);
 
   useEffect(() => {
-    if (!selectedStoreId) { setMenuItems([]); return; }
+    if (!selectedStoreId) {
+      setMenuItems([]);
+      return;
+    }
     fetchMenuItems(selectedStoreId);
-  }, [selectedStoreId, fetchMenuItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStoreId]);
 
   const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.price * i.quantity, 0), [cartItems]);
   const deliveryFee = cartItems.length > 0 ? 2.99 : 0;
@@ -339,7 +344,30 @@ export default function CustomerOrder() {
                 className="place-btn"
                 type="button"
                 disabled={cartItems.length === 0 || !selectedStore}
-                onClick={null}
+                onClick={async () => {
+                  setError(''); setSuccess('');
+                  const username = localStorage.getItem('username');
+                  try {
+                    const res = await fetch(`${API}/api/orders`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        store_id: selectedStoreId,
+                        customer_username: username,
+                        total_price: Math.round((cartTotal + deliveryFee) * 100) / 100,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      setSuccess(`Order #${data.order_id} placed! Total: $${(cartTotal + deliveryFee).toFixed(2)}`);
+                      setCartItems([]);
+                    } else {
+                      setError(data.message || 'Failed to place order.');
+                    }
+                  } catch {
+                    setError('Could not connect to the server.');
+                  }
+                }}
               >
                 {cartItems.length === 0 ? 'Add items to order' : `Place order · ${toCurrency(cartTotal + deliveryFee)}`}
               </button>
