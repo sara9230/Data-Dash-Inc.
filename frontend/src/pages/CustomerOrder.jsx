@@ -97,6 +97,34 @@ const styles = `
   .store-dot.selected { background: var(--red); }
 
   .menu-list { display: flex; flex-direction: column; }
+  .store-filters {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 10px;
+    margin: 0 0 14px;
+  }
+  @media (max-width: 620px) {
+    .store-filters { grid-template-columns: 1fr; }
+  }
+  .menu-search-wrap { margin: 0 0 14px; }
+  .menu-search {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--black);
+    border-radius: 12px;
+    padding: 11px 13px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .menu-search::placeholder { color: #999; }
+  .menu-search:focus {
+    outline: none;
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(232,48,10,0.12);
+  }
   .menu-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 0; border-bottom: 1px solid var(--border); gap: 12px;
@@ -163,6 +191,9 @@ export default function CustomerOrder() {
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState(null);
   const [cartItems, setCartItems] = useState([]);
+  const [storeSearchTerm, setStoreSearchTerm] = useState('');
+  const [storeCategoryFilter, setStoreCategoryFilter] = useState('all');
+  const [menuSearchTerm, setMenuSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -179,12 +210,39 @@ export default function CustomerOrder() {
 
   useEffect(() => {
     const role = localStorage.getItem('role');
-    if (role !== 'user') { navigate('/signin/user'); return; }
+    if (role !== 'customer' && role !== 'user') { navigate('/signin/user'); return; }
     fetchStores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openStores = useMemo(() => stores.filter((s) => (s.status || '').toLowerCase() === 'open'), [stores]);
+  const availableCategories = useMemo(() => {
+    const unique = Array.from(
+      new Set(
+        openStores
+          .map((store) => (store.category || 'general').toLowerCase())
+          .filter(Boolean)
+      )
+    );
+    return unique.sort();
+  }, [openStores]);
+  const filteredOpenStores = useMemo(() => {
+    const query = storeSearchTerm.trim().toLowerCase();
+    const hasCategoryFilter = storeCategoryFilter !== 'all';
+
+    const categoryFilteredStores = hasCategoryFilter
+      ? openStores.filter((store) => (store.category || 'general').toLowerCase() === storeCategoryFilter)
+      : openStores;
+
+    if (!query) {
+      return categoryFilteredStores;
+    }
+    return categoryFilteredStores.filter((store) => {
+      const nameMatch = (store.name || '').toLowerCase().includes(query);
+      const categoryMatch = (store.category || '').toLowerCase().includes(query);
+      return nameMatch || categoryMatch;
+    });
+  }, [openStores, storeSearchTerm, storeCategoryFilter]);
   const selectedStore = useMemo(() => openStores.find((s) => s.id === selectedStoreId) || null, [openStores, selectedStoreId]);
 
   const fetchMenuItems = useCallback(async (storeId) => {
@@ -202,11 +260,21 @@ export default function CustomerOrder() {
   useEffect(() => {
     if (!selectedStoreId) {
       setMenuItems([]);
+      setMenuSearchTerm('');
       return;
     }
     fetchMenuItems(selectedStoreId);
+    setMenuSearchTerm('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStoreId]);
+
+  const filteredMenuItems = useMemo(() => {
+    const query = menuSearchTerm.trim().toLowerCase();
+    if (!query) {
+      return menuItems;
+    }
+    return menuItems.filter((item) => item.name.toLowerCase().includes(query));
+  }, [menuItems, menuSearchTerm]);
 
   const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.price * i.quantity, 0), [cartItems]);
   const deliveryFee = cartItems.length > 0 ? 2.99 : 0;
@@ -249,12 +317,42 @@ export default function CustomerOrder() {
               <div className="heading">Pick a restaurant</div>
               <button className="refresh-btn" type="button" onClick={fetchStores}>↻ Refresh</button>
 
+              {!loadingStores && openStores.length > 0 && (
+                <div className="store-filters">
+                  <div className="menu-search-wrap" style={{ marginBottom: 0 }}>
+                    <input
+                      className="menu-search"
+                      type="search"
+                      placeholder="Search restaurants"
+                      value={storeSearchTerm}
+                      onChange={(e) => setStoreSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <select
+                    className="menu-search"
+                    value={storeCategoryFilter}
+                    onChange={(e) => setStoreCategoryFilter(e.target.value)}
+                    aria-label="Filter restaurants by category"
+                  >
+                    <option value="all">All categories</option>
+                    {availableCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {loadingStores && <p className="hint">Loading…</p>}
               {!loadingStores && openStores.length === 0 && <p className="hint">No open restaurants right now.</p>}
+              {!loadingStores && openStores.length > 0 && filteredOpenStores.length === 0 && (
+                <p className="hint">No restaurants match your search.</p>
+              )}
 
-              {!loadingStores && openStores.length > 0 && (
+              {!loadingStores && filteredOpenStores.length > 0 && (
                 <div className="store-grid">
-                  {openStores.map((store) => {
+                  {filteredOpenStores.map((store) => {
                     const sel = selectedStoreId === store.id;
                     return (
                       <button
@@ -281,12 +379,27 @@ export default function CustomerOrder() {
                 <div className="eyebrow">Step 2</div>
                 <div className="heading">{selectedStore.name}</div>
 
+                {!loadingMenu && menuItems.length > 0 && (
+                  <div className="menu-search-wrap">
+                    <input
+                      className="menu-search"
+                      type="search"
+                      placeholder="Search menu items"
+                      value={menuSearchTerm}
+                      onChange={(e) => setMenuSearchTerm(e.target.value)}
+                    />
+                  </div>
+                )}
+
                 {loadingMenu && <p className="hint">Loading menu…</p>}
                 {!loadingMenu && menuItems.length === 0 && <p className="hint">No items available.</p>}
+                {!loadingMenu && menuItems.length > 0 && filteredMenuItems.length === 0 && (
+                  <p className="hint">No menu items match your search.</p>
+                )}
 
-                {!loadingMenu && menuItems.length > 0 && (
+                {!loadingMenu && filteredMenuItems.length > 0 && (
                   <div className="menu-list">
-                    {menuItems.map((item, idx) => (
+                    {filteredMenuItems.map((item, idx) => (
                       <div key={item.id} className="menu-row" style={{ animationDelay: `${idx * 0.04}s` }}>
                         <div className="menu-info">
                           <div className="menu-name">{item.name}</div>
@@ -357,7 +470,16 @@ export default function CustomerOrder() {
                         total_price: Math.round((cartTotal + deliveryFee) * 100) / 100,
                       }),
                     });
-                    const data = await res.json();
+
+                    const contentType = res.headers.get('content-type') || '';
+                    let data = null;
+                    if (contentType.includes('application/json')) {
+                      data = await res.json();
+                    } else {
+                      const raw = await res.text();
+                      data = { message: raw?.slice(0, 180) || 'Server error while placing order.' };
+                    }
+
                     if (res.ok) {
                       setSuccess(`Order #${data.order_id} placed! Total: $${(cartTotal + deliveryFee).toFixed(2)}`);
                       setCartItems([]);
