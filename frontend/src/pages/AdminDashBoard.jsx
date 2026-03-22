@@ -1,491 +1,284 @@
-// frontend/src/pages/AdminDashboard.jsx
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../styles/AdminDashboard.css';
 
 const API = 'http://127.0.0.1:5000';
-
 const CATEGORIES = ['Fast Food', 'Japanese', 'Italian', 'Chinese', 'Mexican', 'Indian', 'American', 'Other'];
-const EMPTY_FORM  = { name: '', category: '', address: '', phone: '', status: 'Open' };
-const EMPTY_ITEM_FORM = { storeId: '', name: '', description: '', price: '' }; 
+const EMPTY_STORE = { name: '', category: '', address: '', phone: '', status: 'Open' };
+const EMPTY_ITEM  = { name: '', price: '' };
+
+const S = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { min-height: 100vh; background: #edeae4; }
+  body { font-family: 'DM Sans', sans-serif; background: #edeae4; color: #111; }
+
+  .header { background: #edeae4; border-bottom: 1px solid #e0ddd8; height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 50; }
+  .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+  .logo span { color: #e8300a; }
+  .badge { font-size: 11px; font-weight: 700; background: #111; color: #fff; padding: 2px 8px; border-radius: 100px; margin-left: 8px; vertical-align: middle; }
+  .btn-outline { background: none; border: 1.5px solid #ccc; color: #111; padding: 7px 18px; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-outline:hover { border-color: #111; }
+
+  .page { max-width: 1060px; margin: 0 auto; padding: 32px 24px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+  .grid { display: grid; grid-template-columns: 360px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background: #fff; border: 1.5px solid #e0ddd8; border-radius: 18px; padding: 22px; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; margin-bottom: 16px; }
+
+  .lbl { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .inp { width: 100%; padding: 9px 12px; border: 1.5px solid #e0ddd8; border-radius: 10px; font-size: 14px; font-family: inherit; background: #faf9f7; outline: none; color: #111; }
+  .inp:focus { border-color: #111; background: #fff; }
+  .inp.err { border-color: #e8300a; }
+  .err-msg { font-size: 12px; color: #e8300a; margin-top: 3px; display: block; }
+
+  .btn-red { width: 100%; background: #e8300a; color: #fff; border: none; padding: 12px; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 14px; }
+  .btn-red:hover { background: #c5290a; }
+
+  .search { margin-bottom: 12px; }
+  .hint { font-size: 13px; color: #888; text-align: center; padding: 20px 0; }
+
+  .rest-row { border: 1.5px solid #e0ddd8; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .rest-row.open-row { border-color: #111; }
+  .rest-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fff; cursor: pointer; gap: 10px; }
+  .rest-top:hover { background: #faf9f7; }
+  .rest-name { font-size: 14px; font-weight: 700; }
+  .rest-meta { font-size: 12px; color: #888; margin-top: 1px; }
+  .rest-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 100px; }
+  .s-open { background: #e6faf0; color: #22a95b; }
+  .s-closed { background: #fdecea; color: #e8300a; }
+  .btn-sm { background: none; border: 1.5px solid #ddd; color: #999; padding: 4px 11px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-sm:hover { border-color: #e8300a; color: #e8300a; }
+  .chevron { background: #f3f0eb; border: none; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .menu-panel { background: #faf9f7; border-top: 1px solid #e0ddd8; padding: 14px; }
+  .menu-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .menu-add { display: flex; gap: 8px; margin-bottom: 10px; }
+  .mini-inp { flex: 1; padding: 8px 10px; border: 1.5px solid #e0ddd8; border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; outline: none; color: #111; }
+  .mini-inp:focus { border-color: #111; }
+  .mini-inp.w-price { width: 80px; flex: none; }
+  .btn-dark { background: #111; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .btn-dark:hover { background: #333; }
+  .item-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #e0ddd8; }
+  .item-row:last-child { border-bottom: none; }
+  .item-name { font-size: 13px; font-weight: 600; }
+  .item-price { font-size: 13px; color: #888; }
+  .btn-x { background: none; border: none; color: #bbb; font-size: 18px; cursor: pointer; line-height: 1; padding: 0 2px; }
+  .btn-x:hover { color: #e8300a; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: #fff; border-radius: 18px; padding: 26px; max-width: 340px; width: 90%; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+  .modal-text { font-size: 14px; color: #555; margin-bottom: 20px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 10px; }
+  .btn-cancel { flex: 1; background: #f3f0eb; border: none; padding: 12px; border-radius: 100px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-confirm { flex: 1; background: #e8300a; color: #fff; border: none; padding: 12px; border-radius: 100px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 11px 22px; border-radius: 100px; font-size: 13px; font-weight: 600; z-index: 200; }
+  .alert { background: #fdecea; color: #b71c1c; border-left: 3px solid #e8300a; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+`;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-
-  // --- STATE ---
   const [restaurants, setRestaurants] = useState([]);
-  const [form,        setForm]        = useState(EMPTY_FORM);
+  const [form,        setForm]        = useState(EMPTY_STORE);
   const [errors,      setErrors]      = useState({});
   const [search,      setSearch]      = useState('');
   const [deleteId,    setDeleteId]    = useState(null);
   const [toast,       setToast]       = useState('');
   const [loading,     setLoading]     = useState(true);
   const [apiError,    setApiError]    = useState('');
-  const [itemForm, setItemForm] = useState(EMPTY_ITEM_FORM);
-  const [itemErrors, setItemErrors] = useState({});
-  const [selectedMenuStoreId, setSelectedMenuStoreId] = useState('');
-  const [menuItems, setMenuItems] = useState([]);
-  const [loadingMenuItems, setLoadingMenuItems] = useState(false);
+  const [menuItems,   setMenuItems]   = useState({});
+  const [menuForm,    setMenuForm]    = useState({});
+  const [expanded,    setExpanded]    = useState(null);
+  const [menuLoading, setMenuLoading] = useState({});
 
-  // ── fetchStores is defined FIRST so useEffect can call it below ──
+  useEffect(() => { fetchStores(); }, []);
+
   async function fetchStores() {
     setLoading(true);
-    setApiError('');
     try {
-      const response = await fetch(`${API}/api/stores`);
-      const data     = await response.json();
+      const data = await fetch(`${API}/api/stores`).then(r => r.json());
       setRestaurants(data);
-    } catch {
-      // _err: underscore prefix means "I know I'm not using this variable"
-      setApiError('Could not connect to the server. Make sure the backend is running.');
-    }
+    } catch { setApiError('Could not connect to the server.'); }
     setLoading(false);
   }
 
-  // ── Runs once when the page loads ──
-  useEffect(() => {
-  (async () => {
-    await fetchStores();
-  })();
-}, []);
+  async function fetchMenu(storeId) {
+    setMenuLoading(p => ({ ...p, [storeId]: true }));
+    try {
+      const data = await fetch(`${API}/api/stores/${storeId}/menu-items`).then(r => r.json());
+      setMenuItems(p => ({ ...p, [storeId]: Array.isArray(data) ? data : [] }));
+    } catch {}
+    setMenuLoading(p => ({ ...p, [storeId]: false }));
+  }
 
-
-  // ── Filter list based on search input ──
-  const filtered = restaurants.filter(
-    (r) =>
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.category.toLowerCase().includes(search.toLowerCase())
-  );
-
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: '' }));
+  function toggleExpand(id) {
+    if (expanded === id) { setExpanded(null); return; }
+    setExpanded(id);
+    if (!menuItems[id]) fetchMenu(id);
   }
 
   function validate() {
-    const errs = {};
-    if (!form.name.trim())    errs.name     = 'Name is required.';
-    if (!form.category)       errs.category = 'Select a category.';
-    if (!form.address.trim()) errs.address  = 'Address is required.';
-    if (!form.phone.trim())   errs.phone    = 'Phone is required.';
-    return errs;
+    const e = {};
+    if (!form.name.trim())    e.name     = 'Required';
+    if (!form.category)       e.category = 'Required';
+    if (!form.address.trim()) e.address  = 'Required';
+    if (!form.phone.trim())   e.phone    = 'Required';
+    return e;
   }
 
-  // ── ADD restaurant → POST /api/stores ──
   async function handleAdd() {
-    const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-
-    setApiError('');
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
     try {
-      const response = await fetch(`${API}/api/stores`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(form),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setRestaurants((prev) => [...prev, { ...form, id: data.id }]);
-        setForm(EMPTY_FORM);
-        setErrors({});
-        showToast(`"${form.name}" added!`);
-      } else {
-        setApiError(data.message || 'Failed to add store.');
-      }
-    } catch {
-      setApiError('Could not connect to the server.');
-    }
+      const res  = await fetch(`${API}/api/stores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const data = await res.json();
+      if (res.ok) { setRestaurants(p => [...p, { ...form, id: data.id }]); setForm(EMPTY_STORE); setErrors({}); toast2(`"${form.name}" added!`); }
+      else setApiError(data.message || 'Failed to add.');
+    } catch { setApiError('Could not connect.'); }
   }
 
-  // ── DELETE restaurant → DELETE /api/stores/<id> ──
   async function handleDelete(id) {
-    const name = restaurants.find((r) => r.id === id)?.name;
-    setApiError('');
+    const name = restaurants.find(r => r.id === id)?.name;
     try {
-      const response = await fetch(`${API}/api/stores/${id}`, { method: 'DELETE' });
-
-      if (response.ok) {
-        setRestaurants((prev) => prev.filter((r) => r.id !== id));
-        setDeleteId(null);
-        showToast(`"${name}" removed.`);
-      } else {
-        const data = await response.json();
-        setApiError(data.message || 'Failed to delete store.');
-        setDeleteId(null);
-      }
-    } catch {
-      setApiError('Could not connect to the server.');
-      setDeleteId(null);
-    }
+      const res = await fetch(`${API}/api/stores/${id}`, { method: 'DELETE' });
+      if (res.ok) { setRestaurants(p => p.filter(r => r.id !== id)); setDeleteId(null); toast2(`"${name}" removed.`); }
+      else { const d = await res.json(); setApiError(d.message || 'Failed.'); setDeleteId(null); }
+    } catch { setApiError('Could not connect.'); setDeleteId(null); }
   }
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3000);
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    navigate('/signin/admin');
-  }
-
-  function handleItemChange(e) {
-  const { name, value } = e.target;
-  setItemForm((prev) => ({ ...prev, [name]: value }));
-  setItemErrors((prev) => ({ ...prev, [name]: '' }));
-}
-
-function validateItemForm() {
-  const errs = {};
-  if (!itemForm.storeId) errs.storeId = 'Select a store.';
-  if (!itemForm.name.trim()) errs.name = 'Item name is required.';
-  if (!itemForm.description.trim()) errs.description = 'Description is required.';
-  if (!itemForm.price.trim()) errs.price = 'Price is required.';
-  else if (isNaN(itemForm.price)) errs.price = 'Price must be a number.';
-  return errs;
-}
-
-async function handleAddMenuItem() {
-  const errs = validateItemForm();
-  if (Object.keys(errs).length > 0) {
-    setItemErrors(errs);
-    return;
-  }
-
-  setApiError('');
-
-  try {
-    const response = await fetch(`${API}/api/stores/${itemForm.storeId}/menu-items`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: itemForm.name,
-        description: itemForm.description,
-        price: itemForm.price,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      showToast(`"${itemForm.name}" added to menu!`);
-      if (String(selectedMenuStoreId) === String(itemForm.storeId)) {
-        fetchMenuItemsForStore(itemForm.storeId);
-      }
-      setItemForm(EMPTY_ITEM_FORM);
-      setItemErrors({});
-    } else {
-      setApiError(data.message || 'Failed to add menu item.');
-    }
-  } catch {
-    setApiError('Could not connect to the server.');
-  }
-  }
-
-    async function fetchMenuItemsForStore(storeId) {
-    if (!storeId) {
-      setMenuItems([]);
-      return;
-    }
-
-    setLoadingMenuItems(true);
-    setApiError('');
-
+  async function handleAddItem(storeId) {
+    const mf = menuForm[storeId] || EMPTY_ITEM;
+    const price = parseFloat(mf.price);
+    if (!mf.name.trim() || isNaN(price) || price < 0) return;
     try {
-      const response = await fetch(`${API}/api/stores/${storeId}/menu-items`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setMenuItems(Array.isArray(data) ? data : []);
-      } else {
-        setApiError(data.message || 'Failed to load menu items.');
-        setMenuItems([]);
-      }
-    } catch {
-      setApiError('Could not connect to the server.');
-      setMenuItems([]);
-    }
-
-    setLoadingMenuItems(false);
+      const res  = await fetch(`${API}/api/stores/${storeId}/menu-items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: mf.name.trim(), price }) });
+      const data = await res.json();
+      if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: [...(p[storeId] || []), { id: data.id, name: mf.name.trim(), price }] })); setMenuForm(p => ({ ...p, [storeId]: EMPTY_ITEM })); toast2(`"${mf.name}" added!`); }
+    } catch {}
   }
 
-    async function handleDeleteMenuItem(itemId) {
-    setApiError('');
-
+  async function handleDeleteItem(storeId, itemId, name) {
     try {
-      const response = await fetch(`${API}/api/menu-items/${itemId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMenuItems((prev) => prev.filter((item) => item.id !== itemId));
-        showToast(data.message || 'Menu item removed.');
-      } else {
-        setApiError(data.message || 'Failed to remove menu item.');
-      }
-    } catch {
-      setApiError('Could not connect to the server.');
-    }
+      const res = await fetch(`${API}/api/stores/${storeId}/menu-items/${itemId}`, { method: 'DELETE' });
+      if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: p[storeId].filter(i => i.id !== itemId) })); toast2(`"${name}" removed.`); }
+    } catch {}
   }
 
-  // ── RENDER ──
+  function toast2(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
+
+  const filtered = restaurants.filter(r =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.category.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="ad-page">
-
-      <header className="ad-topbar">
-        <span className="ad-logo">🍔 Data Dash <span className="ad-badge">Admin</span></span>
-        <button className="ad-logout" onClick={handleLogout}>Log Out</button>
+    <>
+      <style>{S}</style>
+      <header className="header">
+        <div className="logo">Data<span>Dash</span><span className="badge">Admin</span></div>
+        <button className="btn-outline" type="button" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('role'); navigate('/signin/admin'); }}>Sign out</button>
       </header>
 
-      <main className="ad-main">
-        <h1 className="ad-title">Restaurant Management</h1>
-        <p className="ad-sub">Add or remove restaurants from the platform.</p>
+      <div className="page">
+        <div className="page-title">Restaurant Management</div>
+        <div className="page-sub">Add restaurants and manage their menu items.</div>
 
-        {toast    && <div className="ad-toast">✅ {toast}</div>}
-        {apiError && <div className="ad-error-banner">⚠️ {apiError}</div>}
+        {apiError && <div className="alert">{apiError}</div>}
 
-        {/* Stats */}
-        <div className="ad-stats">
-          <div className="ad-stat" style={{ borderTopColor: '#4f46e5' }}>
-            <div className="ad-stat-num" style={{ color: '#4f46e5' }}>{restaurants.length}</div>
-            <div className="ad-stat-label">Total</div>
-          </div>
-          <div className="ad-stat" style={{ borderTopColor: '#16a34a' }}>
-            <div className="ad-stat-num" style={{ color: '#16a34a' }}>
-              {restaurants.filter((r) => r.status === 'Open').length}
-            </div>
-            <div className="ad-stat-label">Open</div>
-          </div>
-          <div className="ad-stat" style={{ borderTopColor: '#dc2626' }}>
-            <div className="ad-stat-num" style={{ color: '#dc2626' }}>
-              {restaurants.filter((r) => r.status === 'Closed').length}
-            </div>
-            <div className="ad-stat-label">Closed</div>
-          </div>
-        </div>
-
-        <div className="ad-grid">
-
-          {/* Add Form */}
-          <div className="ad-card">
-            <h2 className="ad-card-title">➕ Add Restaurant</h2>
-
-            <label className="ad-label">Restaurant Name *</label>
-            <input
-              className={`ad-input ${errors.name ? 'ad-input-err' : ''}`}
-              name="name" placeholder="e.g. Burger Palace"
-              value={form.name} onChange={handleChange}
-            />
-            {errors.name && <span className="ad-err">{errors.name}</span>}
-
-            <label className="ad-label">Category *</label>
-            <select
-              className={`ad-input ${errors.category ? 'ad-input-err' : ''}`}
-              name="category" value={form.category} onChange={handleChange}
-            >
-              <option value="">-- Select --</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            {errors.category && <span className="ad-err">{errors.category}</span>}
-
-            <label className="ad-label">Address *</label>
-            <input
-              className={`ad-input ${errors.address ? 'ad-input-err' : ''}`}
-              name="address" placeholder="e.g. 123 Main St"
-              value={form.address} onChange={handleChange}
-            />
-            {errors.address && <span className="ad-err">{errors.address}</span>}
-
-            <label className="ad-label">Phone *</label>
-            <input
-              className={`ad-input ${errors.phone ? 'ad-input-err' : ''}`}
-              name="phone" placeholder="e.g. 555-0100"
-              value={form.phone} onChange={handleChange}
-            />
-            {errors.phone && <span className="ad-err">{errors.phone}</span>}
-
-            <label className="ad-label">Status</label>
-            <select className="ad-input" name="status" value={form.status} onChange={handleChange}>
-              <option value="Open">Open</option>
-              <option value="Closed">Closed</option>
-            </select>
-
-            <button className="ad-add-btn" onClick={handleAdd}>+ Add Restaurant</button>
-          </div>
-
-          {/* Menu Item Form */}
-          <div className="ad-card">
-            <h2 className="ad-card-title">🍽 Add Menu Item</h2>
-
-            <label className="ad-label">Store *</label>
-            <select
-              className={`ad-input ${itemErrors.storeId ? 'ad-input-err' : ''}`}
-              name="storeId"
-              value={itemForm.storeId}
-              onChange={handleItemChange}
-            >
-              <option value="">-- Select Store --</option>
-              {restaurants.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-            {itemErrors.storeId && <span className="ad-err">{itemErrors.storeId}</span>}
-
-            <label className="ad-label">Item Name *</label>
-            <input
-              className={`ad-input ${itemErrors.name ? 'ad-input-err' : ''}`}
-              name="name"
-              placeholder="e.g. Cheeseburger"
-              value={itemForm.name}
-              onChange={handleItemChange}
-            />
-            {itemErrors.name && <span className="ad-err">{itemErrors.name}</span>}
-
-            <label className="ad-label">Description *</label>
-            <input
-              className={`ad-input ${itemErrors.description ? 'ad-input-err' : ''}`}
-              name="description"
-              placeholder="e.g. Beef patty with cheddar and house sauce"
-              value={itemForm.description}
-              onChange={handleItemChange}
-            />
-            {itemErrors.description && <span className="ad-err">{itemErrors.description}</span>}
-
-            <label className="ad-label">Price *</label>
-            <input
-              className={`ad-input ${itemErrors.price ? 'ad-input-err' : ''}`}
-              name="price"
-              placeholder="e.g. 9.99"
-              value={itemForm.price}
-              onChange={handleItemChange}
-            />
-            {itemErrors.price && <span className="ad-err">{itemErrors.price}</span>}
-
-            <button className="ad-add-btn" onClick={handleAddMenuItem}>
-              + Add Menu Item
-            </button>
-          </div>
-
-                    {/* Menu Item List */}
-          <div className="ad-card">
-            <h2 className="ad-card-title">🧾 Manage Menu Items</h2>
-
-            <label className="ad-label">Select Store</label>
-            <select
-              className="ad-input"
-              value={selectedMenuStoreId}
-              onChange={(e) => {
-                const storeId = e.target.value;
-                setSelectedMenuStoreId(storeId);
-                fetchMenuItemsForStore(storeId);
-              }}
-            >
-              <option value="">-- Select Store --</option>
-              {restaurants.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-
-            {loadingMenuItems && <div className="ad-empty">Loading menu items...</div>}
-
-            {!loadingMenuItems && selectedMenuStoreId && menuItems.length === 0 && (
-              <div className="ad-empty">No menu items for this store yet.</div>
-            )}
-
-            {!loadingMenuItems && menuItems.map((item) => (
-              <div key={item.id} className="ad-row">
-                <div className="ad-row-info">
-                  <div className="ad-row-name">
-                    {item.name} — ${Number(item.price).toFixed(2)}
-                  </div>
-                  <div className="ad-row-meta">
-                    {item.description || 'No description'}
-                  </div>
-                </div>
-
-                <div className="ad-row-right">
-                  <button
-                    className="ad-remove-btn"
-                    onClick={() => handleDeleteMenuItem(item.id)}
-                  >
-                    🗑 Remove
-                  </button>
-                </div>
+        <div className="grid">
+          <div className="card">
+            <div className="card-title">Add Restaurant</div>
+            {[['name','Restaurant Name','text','e.g. Burger Palace'],['address','Address','text','e.g. 123 Main St'],['phone','Phone','text','e.g. 555-0100']].map(([field, label, type, ph]) => (
+              <div key={field}>
+                <label className="lbl">{label} *</label>
+                <input className={`inp ${errors[field] ? 'err' : ''}`} type={type} placeholder={ph} value={form[field]} onChange={e => { setForm(p => ({...p, [field]: e.target.value})); setErrors(p => ({...p, [field]: ''})); }} />
+                {errors[field] && <span className="err-msg">{errors[field]}</span>}
               </div>
             ))}
+            <label className="lbl">Category *</label>
+            <select className={`inp ${errors.category ? 'err' : ''}`} value={form.category} onChange={e => { setForm(p => ({...p, category: e.target.value})); setErrors(p => ({...p, category: ''})); }}>
+              <option value="">— Select —</option>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+            {errors.category && <span className="err-msg">{errors.category}</span>}
+            <label className="lbl">Status</label>
+            <select className="inp" value={form.status} onChange={e => setForm(p => ({...p, status: e.target.value}))}>
+              <option>Open</option><option>Closed</option>
+            </select>
+            <button className="btn-red" type="button" onClick={handleAdd}>+ Add Restaurant</button>
           </div>
 
-          {/* Restaurant List */}
-          <div className="ad-card">
-            <h2 className="ad-card-title">🏪 All Restaurants</h2>
-            <input
-              className="ad-input"
-              placeholder="🔍 Search by name or category..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="card">
+            <div className="card-title">All Restaurants</div>
+            <input className="inp search" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
 
-            {loading && (
-              <div className="ad-empty">Loading restaurants...</div>
-            )}
-            {!loading && restaurants.length === 0 && (
-              <div className="ad-empty">No restaurants yet. Add one using the form!</div>
-            )}
-            {!loading && restaurants.length > 0 && filtered.length === 0 && (
-              <div className="ad-empty">No results for "{search}"</div>
-            )}
+            {loading && <div className="hint">Loading…</div>}
+            {!loading && filtered.length === 0 && <div className="hint">{restaurants.length === 0 ? 'No restaurants yet.' : `No results for "${search}"`}</div>}
 
-            {!loading && filtered.map((r) => (
-              <div key={r.id} className="ad-row">
-                <div className="ad-row-info">
-                  <div className="ad-row-name">{r.name}</div>
-                  <div className="ad-row-meta">
-                    📂 {r.category} &nbsp;|&nbsp; 📍 {r.address} &nbsp;|&nbsp; 📞 {r.phone}
+            {!loading && filtered.map(r => {
+              const isOpen = expanded === r.id;
+              const items  = menuItems[r.id] || [];
+              const mf     = menuForm[r.id]  || EMPTY_ITEM;
+              return (
+                <div key={r.id} className={`rest-row ${isOpen ? 'open-row' : ''}`}>
+                  <div className="rest-top" onClick={() => toggleExpand(r.id)}>
+                    <div>
+                      <div className="rest-name">{r.name}</div>
+                      <div className="rest-meta">{r.category} · {r.address}</div>
+                    </div>
+                    <div className="rest-actions">
+                      <span className={`status ${r.status === 'Open' ? 's-open' : 's-closed'}`}>{r.status}</span>
+                      <div className="chevron">{isOpen ? '▲' : '▼'}</div>
+                      <button className="btn-sm" type="button" onClick={e => { e.stopPropagation(); setDeleteId(r.id); }}>Remove</button>
+                    </div>
                   </div>
+
+                  {isOpen && (
+                    <div className="menu-panel">
+                      <div className="menu-title">Menu Items</div>
+                      <div className="menu-add">
+                        <input className="mini-inp" placeholder="Item name" value={mf.name} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), name: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
+                        <input className="mini-inp w-price" placeholder="$0.00" type="number" min="0" step="0.01" value={mf.price} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), price: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
+                        <button className="btn-dark" type="button" onClick={() => handleAddItem(r.id)}>+ Add</button>
+                      </div>
+                      {menuLoading[r.id] && <div className="hint">Loading…</div>}
+                      {!menuLoading[r.id] && items.length === 0 && <div className="hint" style={{padding:'8px 0'}}>No items yet.</div>}
+                      {items.map(item => (
+                        <div key={item.id} className="item-row">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-price">${Number(item.price).toFixed(2)}</span>
+                          <button className="btn-x" type="button" onClick={() => handleDeleteItem(r.id, item.id, item.name)}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="ad-row-right">
-                  <span className={`ad-status ${r.status === 'Open' ? 'ad-open' : 'ad-closed'}`}>
-                    {r.status === 'Open' ? '🟢 Open' : '🔴 Closed'}
-                  </span>
-                  <button className="ad-remove-btn" onClick={() => setDeleteId(r.id)}>
-                    🗑 Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-
         </div>
-      </main>
+      </div>
 
-      {/* Confirm Delete Popup */}
+      {toast && <div className="toast">{toast}</div>}
+
       {deleteId !== null && (
-        <div className="ad-overlay">
-          <div className="ad-modal">
-            <h3 className="ad-modal-title">⚠️ Confirm Removal</h3>
-            <p className="ad-modal-text">
-              Are you sure you want to remove{' '}
-              <strong>"{restaurants.find((r) => r.id === deleteId)?.name}"</strong>?
-              <br />This cannot be undone.
-            </p>
-            <div className="ad-modal-btns">
-              <button className="ad-cancel-btn" onClick={() => setDeleteId(null)}>Cancel</button>
-              <button className="ad-confirm-btn" onClick={() => handleDelete(deleteId)}>Yes, Remove</button>
+        <div className="overlay">
+          <div className="modal">
+            <div className="modal-title">Remove restaurant?</div>
+            <p className="modal-text">Are you sure you want to remove <strong>"{restaurants.find(r => r.id === deleteId)?.name}"</strong>? This cannot be undone.</p>
+            <div className="modal-btns">
+              <button className="btn-cancel" type="button" onClick={() => setDeleteId(null)}>Cancel</button>
+              <button className="btn-confirm" type="button" onClick={() => handleDelete(deleteId)}>Yes, remove</button>
             </div>
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }

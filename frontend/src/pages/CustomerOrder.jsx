@@ -7,239 +7,346 @@ function toCurrency(value) {
   return `$${value.toFixed(2)}`;
 }
 
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:     #edeae4;
+    --red:    #e8300a;
+    --black:  #111;
+    --white:  #fff;
+    --card:   #fff;
+    --border: #e0ddd8;
+    --muted:  #888;
+    --green:  #22a95b;
+  }
+
+  html, body, #root { min-height: 100vh; background: var(--bg); }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  .header {
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; }
+  .logo span { color: var(--red); }
+
+  .logout-btn {
+    background: none; border: 1.5px solid #ccc; color: var(--black);
+    padding: 7px 18px; border-radius: 100px;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  .logout-btn:hover { border-color: var(--black); }
+
+  .alert { padding: 10px 32px; font-size: 13px; font-weight: 600; }
+  .alert.error   { background: #fdecea; color: #b71c1c; }
+  .alert.success { background: #e8f5e9; color: #1b5e20; }
+
+  .page {
+    max-width: 1040px; margin: 0 auto; padding: 36px 24px;
+    display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start;
+  }
+  @media (max-width: 720px) { .page { grid-template-columns: 1fr; } }
+
+  .section { margin-bottom: 32px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .heading { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--black); letter-spacing: -0.3px; margin-bottom: 16px; }
+
+  .refresh-btn {
+    background: none; border: none; color: var(--red); font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .refresh-btn:hover { text-decoration: underline; }
+
+  .store-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .store-grid { grid-template-columns: 1fr; } }
+
+  .store-card {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 18px 16px 14px; cursor: pointer; font-family: inherit; text-align: left;
+    width: 100%; color: var(--black);
+    transition: box-shadow 0.15s, border-color 0.15s, transform 0.12s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .store-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); transform: translateY(-2px); }
+  .store-card.selected { border-color: var(--red); box-shadow: 0 4px 16px rgba(232,48,10,0.12); }
+
+  .store-emoji { font-size: 30px; margin-bottom: 10px; display: block; }
+  .store-name  { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--black); }
+  .store-meta  { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .store-dot   { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .store-dot.open     { background: var(--green); }
+  .store-dot.selected { background: var(--red); }
+
+  .menu-list { display: flex; flex-direction: column; }
+  .menu-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--border); gap: 12px;
+    animation: fadeUp 0.15s ease both;
+  }
+  .menu-row:last-child { border-bottom: none; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .menu-info { flex: 1; }
+  .menu-name  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .menu-price { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  .add-btn {
+    background: var(--red); color: var(--white); border: none;
+    width: 32px; height: 32px; border-radius: 50%; font-size: 20px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-family: inherit; transition: background 0.15s, transform 0.1s; line-height: 1;
+  }
+  .add-btn:hover { background: #c5290a; transform: scale(1.08); }
+
+  .cart-panel {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 18px;
+    overflow: hidden; position: sticky; top: 78px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .cart-top { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+  .cart-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+  .cart-sub   { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .cart-sub strong { color: var(--black); font-weight: 600; }
+  .cart-body { padding: 14px 20px; }
+  .cart-empty { text-align: center; padding: 22px 0 6px; color: var(--muted); font-size: 13px; }
+  .cart-empty-icon { font-size: 28px; margin-bottom: 6px; }
+  .cart-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f3f0eb; }
+  .cart-row:last-of-type { border-bottom: none; }
+  .cart-row-info { flex: 1; }
+  .cart-row-name  { font-size: 13px; font-weight: 600; }
+  .cart-row-price { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .qty-wrap { display: flex; align-items: center; gap: 8px; background: #f3f0eb; border-radius: 100px; padding: 3px 8px; }
+  .qty-btn { background: none; border: none; color: var(--black); font-size: 16px; font-weight: 800; cursor: pointer; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-family: inherit; }
+  .qty-btn:hover { background: #e5e2dc; border-radius: 50%; }
+  .qty-num { font-size: 13px; font-weight: 700; min-width: 14px; text-align: center; }
+  .cart-totals { padding: 10px 0 2px; }
+  .cart-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 5px; }
+  .cart-line.total { font-size: 15px; font-weight: 700; color: var(--black); padding-top: 9px; margin-top: 4px; border-top: 1px solid var(--border); }
+  .cart-footer { padding: 0 20px 18px; }
+  .place-btn {
+    width: 100%; background: var(--red); color: var(--white); border: none;
+    padding: 13px; border-radius: 100px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: background 0.15s;
+  }
+  .place-btn:hover:not(:disabled) { background: #c5290a; }
+  .place-btn:disabled { background: #d5d2cc; color: #aaa; cursor: not-allowed; }
+  .hint { font-size: 13px; color: var(--muted); font-weight: 500; }
+`;
+
+const categoryEmojis = { pizza:'🍕', burger:'🍔', sushi:'🍣', chinese:'🥡', mexican:'🌮', italian:'🍝', indian:'🍛', thai:'🍜', salad:'🥗', dessert:'🍰', breakfast:'🍳', coffee:'☕', general:'🍽️' };
+function storeEmoji(cat) { return categoryEmojis[(cat || '').toLowerCase()] || '🍽️'; }
+
 export default function CustomerOrder() {
   const navigate = useNavigate();
 
-  // Page state: store/menu data, cart, and request feedback.
   const [stores, setStores] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [loadingStores, setLoadingStores] = useState(true);
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState(null);
   const [cartItems, setCartItems] = useState([]);
-  const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
-
-  const username = localStorage.getItem('username') || '';
+  const [success, setSuccess] = useState('');
 
   const fetchStores = useCallback(async () => {
-    setLoadingStores(true);
-    setError('');
-
+    setLoadingStores(true); setError('');
     try {
-      const response = await fetch(`${API}/api/stores`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || 'Failed to load restaurants.');
-        setStores([]);
-      } else {
-        setStores(Array.isArray(data) ? data : []);
-      }
-    } catch {
-      setError('Could not connect to the server. Make sure backend is running.');
-      setStores([]);
-    }
-
+      const res = await fetch(`${API}/api/stores`);
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || 'Failed to load restaurants.'); setStores([]); }
+      else setStores(Array.isArray(data) ? data : []);
+    } catch { setError('Could not connect to the server.'); setStores([]); }
     setLoadingStores(false);
   }, []);
 
-  // Initial store fetch + simple role guard.
   useEffect(() => {
     const role = localStorage.getItem('role');
-    if (role !== 'user') {
-      navigate('/signin/user');
-      return;
-    }
-
+    if (role !== 'user') { navigate('/signin/user'); return; }
     fetchStores();
   }, [navigate, fetchStores]);
 
-  const openStores = useMemo(
-    () => stores.filter((store) => (store.status || '').toLowerCase() === 'open'),
-    [stores]
-  );
+  const openStores = useMemo(() => stores.filter((s) => (s.status || '').toLowerCase() === 'open'), [stores]);
+  const selectedStore = useMemo(() => openStores.find((s) => s.id === selectedStoreId) || null, [openStores, selectedStoreId]);
 
-  const selectedStore = useMemo(
-    () => openStores.find((store) => store.id === selectedStoreId) || null,
-    [openStores, selectedStoreId]
-  );
-
-  // Load MenuItem records for the currently selected store.
   const fetchMenuItems = useCallback(async (storeId) => {
-    if (!storeId) {
-      setMenuItems([]);
-      setLoadingMenu(false);
-      return;
-    }
-
-    setLoadingMenu(true);
-    setError('');
-
+    if (!storeId) { setMenuItems([]); return; }
+    setLoadingMenu(true); setError('');
     try {
-      const response = await fetch(`${API}/api/stores/${storeId}/menu-items`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || 'Failed to load menu items.');
-        setMenuItems([]);
-      } else {
-        const normalized = Array.isArray(data)
-          ? data.map((item) => ({
-              id: item.id,
-              name: item.name,
-              description: item.description || '',
-              price: Number(item.price) || 0,
-              store_id: item.store_id,
-            }))
-          : [];
-        setMenuItems(normalized);
-      }
-    } catch {
-      setError('Could not connect to the server to load menu items.');
-      setMenuItems([]);
-    }
-
+      const res = await fetch(`${API}/api/stores/${storeId}/menu-items`);
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || 'Failed to load menu.'); setMenuItems([]); }
+      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, price: Number(i.price) || 0, store_id: i.store_id })) : []);
+    } catch { setError('Could not load menu items.'); setMenuItems([]); }
     setLoadingMenu(false);
   }, []);
 
   useEffect(() => {
-    if (!selectedStoreId) {
-      setMenuItems([]);
-      setLoadingMenu(false);
-      return;
-    }
-
+    if (!selectedStoreId) { setMenuItems([]); return; }
     fetchMenuItems(selectedStoreId);
   }, [selectedStoreId, fetchMenuItems]);
 
-  const cartCount = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
-    [cartItems]
-  );
+  const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.price * i.quantity, 0), [cartItems]);
+  const deliveryFee = cartItems.length > 0 ? 2.99 : 0;
 
-  const cartTotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [cartItems]
-  );
-
-  function addToCart(menuItem) {
-    setError('');
-    setSuccess('');
+  function addToCart(item) {
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.id === menuItem.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-
-      return [...prev, { ...menuItem, quantity: 1 }];
+      const ex = prev.find((i) => i.id === item.id);
+      if (ex) return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { ...item, quantity: 1 }];
     });
   }
 
   function changeQuantity(itemId, delta) {
     setCartItems((prev) =>
-      prev
-        .map((item) =>
-          item.id === itemId ? { ...item, quantity: item.quantity + delta } : item
-        )
-        .filter((item) => item.quantity > 0)
+      prev.map((i) => i.id === itemId ? { ...i, quantity: i.quantity + delta } : i).filter((i) => i.quantity > 0)
     );
   }
 
-  function removeFromCart(itemId) {
-    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-  }
-
   function handleLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    localStorage.removeItem('token'); localStorage.removeItem('role');
     navigate('/signin/user');
   }
 
   return (
-    <div>
-      <header>
-        <h1>DataDash</h1>
-        <p>Customer Order Page</p>
-        <button type="button" onClick={handleLogout}>Log Out</button>
-      </header>
+    <>
+      <style>{styles}</style>
+      <div>
+        <header className="header">
+          <div className="logo">Data<span>Dash</span></div>
+          <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
+        </header>
 
-      <hr />
+        {error   && <div className="alert error">{error}</div>}
+        {success && <div className="alert success">{success}</div>}
 
-      {success && <p>{success}</p>}
-      {error && <p>{error}</p>}
+        <div className="page">
+          <div>
+            <div className="section">
+              <div className="eyebrow">Step 1</div>
+              <div className="heading">Pick a restaurant</div>
+              <button className="refresh-btn" type="button" onClick={fetchStores}>↻ Refresh</button>
 
-      <section>
-        <h2>1. Choose Restaurant</h2>
-        <button type="button" onClick={fetchStores}>Refresh Restaurants</button>
+              {loadingStores && <p className="hint">Loading…</p>}
+              {!loadingStores && openStores.length === 0 && <p className="hint">No open restaurants right now.</p>}
 
-        {loadingStores && <p>Loading restaurants...</p>}
-        {!loadingStores && openStores.length === 0 && <p>No open restaurants found.</p>}
+              {!loadingStores && openStores.length > 0 && (
+                <div className="store-grid">
+                  {openStores.map((store) => {
+                    const sel = selectedStoreId === store.id;
+                    return (
+                      <button
+                        key={store.id}
+                        className={`store-card${sel ? ' selected' : ''}`}
+                        type="button"
+                        onClick={() => { setSelectedStoreId(store.id); setCartItems([]); }}
+                      >
+                        <span className="store-emoji">{storeEmoji(store.category)}</span>
+                        <div className="store-name">{store.name}</div>
+                        <div className="store-meta">
+                          <span className={`store-dot ${sel ? 'selected' : 'open'}`} />
+                          {sel ? 'Selected' : '20–30 min'}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-        {!loadingStores && openStores.length > 0 && (
-          <ul>
-            {openStores.map((store) => (
-              <li key={store.id}>
-                <button type="button" onClick={() => setSelectedStoreId(store.id)}>
-                  {selectedStoreId === store.id ? 'Selected: ' : ''}
-                  {store.name} ({store.category || 'General'})
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+            {selectedStore && (
+              <div className="section">
+                <div className="eyebrow">Step 2</div>
+                <div className="heading">{selectedStore.name}</div>
 
-      <hr />
+                {loadingMenu && <p className="hint">Loading menu…</p>}
+                {!loadingMenu && menuItems.length === 0 && <p className="hint">No items available.</p>}
 
-      <section>
-        <h2>2. Menu Items</h2>
-        {!selectedStore && <p>Select a restaurant to view menu.</p>}
-        {selectedStore && <p>Store: <strong>{selectedStore.name}</strong></p>}
-        {selectedStore && loadingMenu && <p>Loading menu items...</p>}
-        {selectedStore && !loadingMenu && menuItems.length === 0 && <p>No menu items found for this store.</p>}
+                {!loadingMenu && menuItems.length > 0 && (
+                  <div className="menu-list">
+                    {menuItems.map((item, idx) => (
+                      <div key={item.id} className="menu-row" style={{ animationDelay: `${idx * 0.04}s` }}>
+                        <div className="menu-info">
+                          <div className="menu-name">{item.name}</div>
+                          <div className="menu-price">{toCurrency(item.price)}</div>
+                        </div>
+                        <button className="add-btn" type="button" onClick={() => addToCart(item)}>+</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-        {selectedStore && !loadingMenu && menuItems.length > 0 && (
-          <ul>
-            {menuItems.map((item) => (
-              <li key={item.id}>
-                {item.name} - {toCurrency(item.price)}{' '}
-                {item.description}{' '}
-                <button type="button" onClick={() => addToCart(item)}>Add</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          <div className="cart-panel">
+            <div className="cart-top">
+              <div className="cart-title">Your order</div>
+              <div className="cart-sub">
+                {selectedStore ? <>from <strong>{selectedStore.name}</strong></> : 'No restaurant selected'}
+              </div>
+            </div>
 
-      <hr />
+            <div className="cart-body">
+              {cartItems.length === 0 ? (
+                <div className="cart-empty">
+                  <div className="cart-empty-icon">🛍️</div>
+                  <div>Add items to get started</div>
+                </div>
+              ) : (
+                <>
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="cart-row">
+                      <div className="cart-row-info">
+                        <div className="cart-row-name">{item.name}</div>
+                        <div className="cart-row-price">{toCurrency(item.price)}</div>
+                      </div>
+                      <div className="qty-wrap">
+                        <button className="qty-btn" type="button" onClick={() => changeQuantity(item.id, -1)}>−</button>
+                        <span className="qty-num">{item.quantity}</span>
+                        <button className="qty-btn" type="button" onClick={() => changeQuantity(item.id, 1)}>+</button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="cart-totals">
+                    <div className="cart-line"><span>Subtotal</span><span>{toCurrency(cartTotal)}</span></div>
+                    <div className="cart-line"><span>Delivery</span><span>{toCurrency(deliveryFee)}</span></div>
+                    <div className="cart-line total"><span>Total</span><span>{toCurrency(cartTotal + deliveryFee)}</span></div>
+                  </div>
+                </>
+              )}
+            </div>
 
-      <section>
-        <h2>3. Cart</h2>
-        {selectedStore && <p>Ordering from: <strong>{selectedStore.name}</strong></p>}
-        <p>Items in cart: {cartCount}</p>
-
-        {cartItems.length === 0 && <p>Your cart is empty.</p>}
-
-        {cartItems.length > 0 && (
-          <ul>
-            {cartItems.map((item) => (
-              <li key={item.id}>
-                {item.name} - {toCurrency(item.price)} x {item.quantity}{' '}
-                <button type="button" onClick={() => changeQuantity(item.id, -1)}>-</button>{' '}
-                <button type="button" onClick={() => changeQuantity(item.id, 1)}>+</button>{' '}
-                <button type="button" onClick={() => removeFromCart(item.id)}>Remove</button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <p><strong>Total: {toCurrency(cartTotal)}</strong></p>
-
-        <button type="button"onClick={null}>Place Order</button>
-      </section>
-    </div>
+            <div className="cart-footer">
+              <button
+                className="place-btn"
+                type="button"
+                disabled={cartItems.length === 0 || !selectedStore}
+                onClick={null}
+              >
+                {cartItems.length === 0 ? 'Add items to order' : `Place order · ${toCurrency(cartTotal + deliveryFee)}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

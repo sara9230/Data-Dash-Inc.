@@ -150,25 +150,11 @@ def get_store_menu_items(store_id):
 
     return jsonify(result), 200
 
-# ------------------------------------------------------------------
-# DELETE /api/menu-items/<id>
-# Deletes one menu item by ID
-# ------------------------------------------------------------------
-@app.route("/api/menu-items/<int:item_id>", methods=["DELETE"])
-def delete_menu_item(item_id):
-    item = MenuItem.query.get(item_id)
-
-    if not item:
-        return jsonify({"message": "Menu item not found"}), 404
-
-    db.session.delete(item)
-    db.session.commit()
-
-    return jsonify({"message": f'"{item.name}" was deleted successfully'}), 200
 
 # ------------------------------------------------------------------
 # POST /api/stores/<store_id>/menu-items
-# Adds new menu tiem to the specific store
+# Adds a new menu item to a store.
+# Body: { "name": "...", "description": "...", "price": 9.99 }
 # ------------------------------------------------------------------
 @app.route("/api/stores/<int:store_id>/menu-items", methods=["POST"])
 def add_menu_item(store_id):
@@ -207,6 +193,7 @@ def add_menu_item(store_id):
         "id": new_item.id
     }), 201
 
+
 # ------------------------------------------------------------------
 # POST /api/stores
 # Adds a NEW store to the database.
@@ -237,30 +224,6 @@ def add_store():
         "id":      new_store.id  # send back the new ID so the frontend can use it
     }), 201
 
-# ------------------------------------------------------------------
-# POST /api/stores/<id>/menu-items
-# Adds a new menu item to a store.
-# Body: { "name": "...", "price": 9.99 }
-# ------------------------------------------------------------------
-@app.route("/api/stores/<int:store_id>/menu-items", methods=["POST"])
-def add_menu_item(store_id):
-    store = Store.query.get(store_id)
-    if not store:
-        return jsonify({"message": "Store not found"}), 404
- 
-    data  = request.get_json() or {}
-    name  = data.get("name")
-    price = data.get("price")
- 
-    if not name or price is None:
-        return jsonify({"message": "name and price are required"}), 400
- 
-    item = MenuItem(name=name, price=float(price), store_id=store_id)
-    db.session.add(item)
-    db.session.commit()
- 
-    return jsonify({"message": "Item added!", "id": item.id}), 201
-
 
 # ------------------------------------------------------------------
 # DELETE /api/stores/<id>
@@ -280,21 +243,21 @@ def delete_store(store_id):
 
     return jsonify({"message": f'"{store.name}" was deleted successfully'}), 200
 
+
 # ------------------------------------------------------------------
 # DELETE /api/stores/<store_id>/menu-items/<item_id>
-# Deletes a menu item by ID.
+# Deletes a menu item belonging to a specific store.
 # ------------------------------------------------------------------
 @app.route("/api/stores/<int:store_id>/menu-items/<int:item_id>", methods=["DELETE"])
 def delete_menu_item(store_id, item_id):
     item = MenuItem.query.filter_by(id=item_id, store_id=store_id).first()
     if not item:
         return jsonify({"message": "Item not found"}), 404
- 
+
     db.session.delete(item)
     db.session.commit()
- 
-    return jsonify({"message": "Item deleted!"}), 200
- 
+
+    return jsonify({"message": f'"{item.name}" was deleted successfully'}), 200
 
 
 # ============================================================
