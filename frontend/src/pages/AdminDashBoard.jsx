@@ -86,6 +86,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState([]);
   const [form,        setForm]        = useState(EMPTY_STORE);
+  const [otherCategory, setOtherCategory] = useState('');
   const [errors,      setErrors]      = useState({});
   const [search,      setSearch]      = useState('');
   const [deleteId,    setDeleteId]    = useState(null);
@@ -123,10 +124,21 @@ export default function AdminDashboard() {
     if (!menuItems[id]) fetchMenu(id);
   }
 
+  function toTitleCase(value) {
+    return value
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   function validate() {
     const e = {};
     if (!form.name.trim())    e.name     = 'Required';
     if (!form.category)       e.category = 'Required';
+    if (form.category === 'Other' && !otherCategory.trim()) e.otherCategory = 'Required when category is Other';
     if (!form.address.trim()) e.address  = 'Required';
     if (!form.phone.trim())   e.phone    = 'Required';
     return e;
@@ -135,10 +147,22 @@ export default function AdminDashboard() {
   async function handleAdd() {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
+
+    const payload = {
+      ...form,
+      category: form.category === 'Other' ? toTitleCase(otherCategory) : form.category,
+    };
+
     try {
-      const res  = await fetch(`${API}/api/stores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      const res  = await fetch(`${API}/api/stores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (res.ok) { setRestaurants(p => [...p, { ...form, id: data.id }]); setForm(EMPTY_STORE); setErrors({}); toast2(`"${form.name}" added!`); }
+      if (res.ok) {
+        setRestaurants(p => [...p, { ...payload, id: data.id }]);
+        setForm(EMPTY_STORE);
+        setOtherCategory('');
+        setErrors({});
+        toast2(`"${form.name}" added!`);
+      }
       else setApiError(data.message || 'Failed to add.');
     } catch { setApiError('Could not connect.'); }
   }
@@ -202,11 +226,35 @@ export default function AdminDashboard() {
               </div>
             ))}
             <label className="lbl">Category *</label>
-            <select className={`inp ${errors.category ? 'err' : ''}`} value={form.category} onChange={e => { setForm(p => ({...p, category: e.target.value})); setErrors(p => ({...p, category: ''})); }}>
+            <select className={`inp ${errors.category ? 'err' : ''}`} value={form.category} onChange={e => {
+              const nextCategory = e.target.value;
+              setForm(p => ({...p, category: nextCategory}));
+              setErrors(p => ({...p, category: ''}));
+              if (nextCategory !== 'Other') {
+                setOtherCategory('');
+                setErrors(p => ({...p, otherCategory: ''}));
+              }
+            }}>
               <option value="">— Select —</option>
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
             {errors.category && <span className="err-msg">{errors.category}</span>}
+            {form.category === 'Other' && (
+              <>
+                <label className="lbl">Custom Category *</label>
+                <input
+                  className={`inp ${errors.otherCategory ? 'err' : ''}`}
+                  type="text"
+                  placeholder="e.g. Mediterranean"
+                  value={otherCategory}
+                  onChange={e => {
+                    setOtherCategory(e.target.value);
+                    setErrors(p => ({ ...p, otherCategory: '' }));
+                  }}
+                />
+                {errors.otherCategory && <span className="err-msg">{errors.otherCategory}</span>}
+              </>
+            )}
             <label className="lbl">Status</label>
             <select className="inp" value={form.status} onChange={e => setForm(p => ({...p, status: e.target.value}))}>
               <option>Open</option><option>Closed</option>
