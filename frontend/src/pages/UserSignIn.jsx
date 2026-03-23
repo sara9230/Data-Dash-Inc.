@@ -25,7 +25,7 @@ function UserSignIn() {
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('role', 'user');
+        localStorage.setItem('role', data.role || 'customer');
         localStorage.setItem('username', data.username); // add this
         navigate('/dashboard');
       } else {
