@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,9 +21,11 @@ export default function CustomerOrder() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [openNowOnly, setOpenNowOnly] = useState(false);
 
   const username = localStorage.getItem('username') || '';
-
+  
   const fetchStores = useCallback(async () => {
     setLoadingStores(true);
     setError('');
@@ -56,15 +59,34 @@ export default function CustomerOrder() {
     fetchStores();
   }, [navigate, fetchStores]);
 
-  const openStores = useMemo(
-    () => stores.filter((store) => (store.status || '').toLowerCase() === 'open'),
-    [stores]
-  );
+  const categories = useMemo(() => {
+  const uniqueCategories = [...new Set(
+    stores.map((store) => store.category || 'General').filter(Boolean)
+  )];
+  return ['All', ...uniqueCategories];
+  }, [stores]);
 
   const selectedStore = useMemo(
-    () => openStores.find((store) => store.id === selectedStoreId) || null,
-    [openStores, selectedStoreId]
-  );
+  () => stores.find((store) => store.id === selectedStoreId) || null,
+  [stores, selectedStoreId]
+);
+
+const filteredStores = useMemo(() => {
+  return stores.filter((store) => {
+    const matchesSearch =
+      store.name.toLowerCase().includes(search.toLowerCase()) ||
+      (store.category || '').toLowerCase().includes(search.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === 'All' ||
+      (store.category || 'General') === selectedCategory;
+
+    const matchesOpenNow =
+      !openNowOnly || (store.status || '').toLowerCase() === 'open';
+
+    return matchesSearch && matchesCategory && matchesOpenNow;
+  });
+}, [stores, search, selectedCategory, openNowOnly]);
 
   // Load MenuItem records for the currently selected store.
   const fetchMenuItems = useCallback(async (storeId) => {
@@ -159,12 +181,6 @@ export default function CustomerOrder() {
     navigate('/signin/user');
   }
 
-  const filteredStores = openStores.filter(
-  (store) =>
-    store.name.toLowerCase().includes(search.toLowerCase()) ||
-    (store.category || '').toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <div>
       <header>
@@ -179,28 +195,67 @@ export default function CustomerOrder() {
       {error && <p>{error}</p>}
 
       <section>
-    `  <h2>1. Choose Restaurant</h2>
+      <h2>1. Choose Restaurant</h2>
         <button type="button" onClick={fetchStores}>Refresh Restaurants</button>
 
-        <div style={{ marginTop: '10px', marginBottom: '10px' }}>
-          <input
-            type="text"
-            placeholder="Search restaurants..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: '8px',
-              width: '250px',
-              borderRadius: '6px',
-              border: '1px solid #ccc'
-            }}
-          />
-        </div>
+        <div
+  style={{
+    marginTop: '10px',
+    marginBottom: '10px',
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  }}
+>
+  <input
+    type="text"
+    placeholder="Search restaurants..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    style={{
+      padding: '8px',
+      width: '250px',
+      borderRadius: '6px',
+      border: '1px solid #ccc'
+    }}
+  />
+
+  <label>
+    Category:{' '}
+    <select
+      value={selectedCategory}
+      onChange={(e) => setSelectedCategory(e.target.value)}
+      aria-label="Category"
+      style={{
+        padding: '8px',
+        borderRadius: '6px',
+        border: '1px solid #ccc'
+      }}
+    >
+      {categories.map((category) => (
+        <option key={category} value={category}>
+          {category}
+        </option>
+      ))}
+    </select>
+  </label>
+
+  <label>
+    <input
+      type="checkbox"
+      checked={openNowOnly}
+      onChange={(e) => setOpenNowOnly(e.target.checked)}
+      aria-label="Open Now"
+    />{' '}
+    Open Now
+  </label>
+</div>
 
         {loadingStores && <p>Loading restaurants...</p>}
-        {!loadingStores && openStores.length === 0 && <p>No open restaurants found.</p>}
-        {!loadingStores && openStores.length > 0 && filteredStores.length === 0 && (
-          <p>No restaurants match your search.</p>
+        {!loadingStores && stores.length === 0 && <p>No restaurants found.</p>}
+        {!loadingStores && stores.length > 0 && filteredStores.length === 0 && (
+        <p>No restaurants match your search or filters.</p>
         )}
 
         {!loadingStores && filteredStores.length > 0 && (
