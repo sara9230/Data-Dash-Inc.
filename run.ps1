@@ -4,13 +4,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "== Data-Dash-Inc Run ==" -ForegroundColor Cyan
-
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $frontendPath = Join-Path $root "frontend"
 $backendPath = Join-Path $root "backend"
 $venvPython = Join-Path $root ".venv\Scripts\python.exe"
 
+# check if frontend and backend folders exist
 if (-not (Test-Path $frontendPath)) {
   throw "Frontend folder not found at $frontendPath"
 }
@@ -19,32 +18,38 @@ if (-not (Test-Path $backendPath)) {
   throw "Backend folder not found at $backendPath"
 }
 
+$pythonCmd = if (Test-Path $venvPython) { $venvPython } else { "python" }
+$backendRequirements = Join-Path $backendPath "requirements.txt"
+ # check if user wants to skip installation
 if (-not $SkipInstall) {
   Push-Location $frontendPath
+  # install frontend dependencies
   try {
-    Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
     npm install
   }
   finally {
     Pop-Location
   }
+  # install backend dependencies
+  if (Test-Path $backendRequirements) {
+    & $pythonCmd -m pip install -r $backendRequirements
+  }
 }
 
-$pythonCmd = if (Test-Path $venvPython) { $venvPython } else { "python" }
 $backendApp = Join-Path $backendPath "app.py"
-
-Write-Host "Starting backend in a new PowerShell window..." -ForegroundColor Yellow
+# opens a new terminal to run the backend
+Write-Host "Starting backend"
 Start-Process powershell -ArgumentList @(
   "-NoExit",
   "-Command",
+  # run backend
   "cd '$backendPath'; & '$pythonCmd' '$backendApp'"
 )
 
 Start-Sleep -Seconds 2
 
-Write-Host "Starting frontend dev server in this terminal..." -ForegroundColor Yellow
-Write-Host "Open the local URL printed by Vite (usually http://localhost:5173)." -ForegroundColor DarkGray
-
+Write-Host "Open the local URL http://localhost:5173"
+# run frontend
 Push-Location $frontendPath
 try {
   npm run dev
