@@ -133,6 +133,15 @@ const styles = `
   .menu-row:last-child { border-bottom: none; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
+  .menu-photo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    background: #f3f0eb;
+    flex-shrink: 0;
+  }
   .menu-info { flex: 1; }
   .menu-name  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .menu-desc  { font-size: 12px; color: var(--muted); margin-bottom: 3px; line-height: 1.35; }
@@ -203,6 +212,7 @@ function normalizeCartItems(rawItems) {
         id,
         name: item?.name || '',
         description: item?.description || '',
+        image_url: item?.image_url || '',
         price,
         quantity,
         store_id: Number.isFinite(storeId) ? storeId : null,
@@ -333,7 +343,7 @@ export default function CustomerOrder() {
       const res = await fetch(`${API}/api/stores/${storeId}/menu-items`);
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Failed to load menu.'); setMenuItems([]); }
-      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, description: i.description || '', price: Number(i.price) || 0, store_id: i.store_id })) : []);
+      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, description: i.description || '', image_url: i.image_url || '', price: Number(i.price) || 0, store_id: i.store_id })) : []);
     } catch { setError('Could not load menu items.'); setMenuItems([]); }
     setLoadingMenu(false);
   }, []);
@@ -486,6 +496,7 @@ export default function CustomerOrder() {
                   <div className="menu-list">
                     {filteredMenuItems.map((item, idx) => (
                       <div key={item.id} className="menu-row" style={{ animationDelay: `${idx * 0.04}s` }}>
+                        {item.image_url && <img className="menu-photo" src={item.image_url} alt={item.name} loading="lazy" />}
                         <div className="menu-info">
                           <div className="menu-name">{item.name}</div>
                           {item.description && <div className="menu-desc">{item.description}</div>}

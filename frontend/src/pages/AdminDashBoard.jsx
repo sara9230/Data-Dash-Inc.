@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const API = 'http://127.0.0.1:5000';
 const CATEGORIES = ['Fast Food', 'Japanese', 'Italian', 'Chinese', 'Mexican', 'Indian', 'American', 'Other'];
 const EMPTY_STORE = { name: '', category: '', address: '', phone: '', status: 'Open' };
-const EMPTY_ITEM  = { name: '', price: '' };
+const EMPTY_ITEM  = { name: '', price: '', image_url: '' };
 
 const S = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;600&display=swap');
@@ -61,14 +61,27 @@ const S = `
   .mini-inp { flex: 1; padding: 8px 10px; border: 1.5px solid #e0ddd8; border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; outline: none; color: #111; }
   .mini-inp:focus { border-color: #111; }
   .mini-inp.w-price { width: 80px; flex: none; }
+  .mini-inp.w-photo { min-width: 170px; }
   .btn-dark { background: #111; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
   .btn-dark:hover { background: #333; }
   .item-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #e0ddd8; }
   .item-row:last-child { border-bottom: none; }
+  .item-left { display: flex; align-items: center; gap: 10px; }
+  .item-thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; border: 1px solid #e0ddd8; background: #f3f0eb; }
   .item-name { font-size: 13px; font-weight: 600; }
   .item-price { font-size: 13px; color: #888; }
   .btn-x { background: none; border: none; color: #bbb; font-size: 18px; cursor: pointer; line-height: 1; padding: 0 2px; }
   .btn-x:hover { color: #e8300a; }
+  .btn-link {
+    background: none;
+    border: none;
+    color: #111;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .btn-link:hover { color: #e8300a; }
 
   .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
   .modal { background: #fff; border-radius: 18px; padding: 26px; max-width: 340px; width: 90%; }
@@ -181,9 +194,14 @@ export default function AdminDashboard() {
     const price = parseFloat(mf.price);
     if (!mf.name.trim() || isNaN(price) || price < 0) return;
     try {
-      const res  = await fetch(`${API}/api/stores/${storeId}/menu-items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: mf.name.trim(), price }) });
+      const payload = {
+        name: mf.name.trim(),
+        price,
+        image_url: (mf.image_url || '').trim(),
+      };
+      const res  = await fetch(`${API}/api/stores/${storeId}/menu-items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: [...(p[storeId] || []), { id: data.id, name: mf.name.trim(), price }] })); setMenuForm(p => ({ ...p, [storeId]: EMPTY_ITEM })); toast2(`"${mf.name}" added!`); }
+      if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: [...(p[storeId] || []), { id: data.id, name: mf.name.trim(), price, image_url: payload.image_url }] })); setMenuForm(p => ({ ...p, [storeId]: EMPTY_ITEM })); toast2(`"${mf.name}" added!`); }
     } catch {}
   }
 
@@ -191,6 +209,29 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`${API}/api/stores/${storeId}/menu-items/${itemId}`, { method: 'DELETE' });
       if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: p[storeId].filter(i => i.id !== itemId) })); toast2(`"${name}" removed.`); }
+    } catch {}
+  }
+
+  async function handleUpdateItemPhoto(storeId, item) {
+    const nextUrl = window.prompt('Paste image URL (leave empty to remove photo):', item.image_url || '');
+    if (nextUrl === null) return;
+
+    const image_url = nextUrl.trim();
+    try {
+      const res = await fetch(`${API}/api/stores/${storeId}/menu-items/${item.id}/image`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url }),
+      });
+      if (res.ok) {
+        setMenuItems((prev) => ({
+          ...prev,
+          [storeId]: (prev[storeId] || []).map((menuItem) => (
+            menuItem.id === item.id ? { ...menuItem, image_url } : menuItem
+          )),
+        }));
+        toast2(`Photo updated for "${item.name}".`);
+      }
     } catch {}
   }
 
@@ -293,15 +334,24 @@ export default function AdminDashboard() {
                       <div className="menu-add">
                         <input className="mini-inp" placeholder="Item name" value={mf.name} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), name: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
                         <input className="mini-inp w-price" placeholder="$0.00" type="number" min="0" step="0.01" value={mf.price} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), price: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
+                        <input className="mini-inp w-photo" placeholder="Photo URL (optional)" value={mf.image_url || ''} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), image_url: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
                         <button className="btn-dark" type="button" onClick={() => handleAddItem(r.id)}>+ Add</button>
                       </div>
                       {menuLoading[r.id] && <div className="hint">Loading…</div>}
                       {!menuLoading[r.id] && items.length === 0 && <div className="hint" style={{padding:'8px 0'}}>No items yet.</div>}
                       {items.map(item => (
                         <div key={item.id} className="item-row">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-price">${Number(item.price).toFixed(2)}</span>
-                          <button className="btn-x" type="button" onClick={() => handleDeleteItem(r.id, item.id, item.name)}>×</button>
+                          <div className="item-left">
+                            {item.image_url && <img className="item-thumb" src={item.image_url} alt={item.name} loading="lazy" />}
+                            <span className="item-name">{item.name}</span>
+                          </div>
+                          <div>
+                            <span className="item-price">${Number(item.price).toFixed(2)}</span>
+                            <button className="btn-link" type="button" onClick={() => handleUpdateItemPhoto(r.id, item)}>
+                              {item.image_url ? 'Change photo' : 'Add photo'}
+                            </button>
+                            <button className="btn-x" type="button" onClick={() => handleDeleteItem(r.id, item.id, item.name)}>×</button>
+                          </div>
                         </div>
                       ))}
                     </div>

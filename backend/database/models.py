@@ -42,6 +42,7 @@ class MenuItem(db.Model):
     name     = db.Column(db.String(120), nullable=False)
     price    = db.Column(db.Float, nullable=False)
     description = db.Column(db.String(200))
+    image_url = db.Column(db.String(500))
     store_id = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
 
 

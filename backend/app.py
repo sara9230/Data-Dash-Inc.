@@ -12,6 +12,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from database.models import db, User, Store, MenuItem, Order, UserCart
 import json
+from sqlalchemy import text
 
 app = Flask(__name__)
 CORS(app)  # allow requests from the React frontend (different port)
@@ -23,9 +24,19 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
+
+def ensure_menu_item_image_column():
+    # Lightweight migration so existing SQLite databases get the new image_url column.
+    result = db.session.execute(text("PRAGMA table_info(menu_items)"))
+    columns = [row[1] for row in result.fetchall()]
+    if "image_url" not in columns:
+        db.session.execute(text("ALTER TABLE menu_items ADD COLUMN image_url VARCHAR(500)"))
+        db.session.commit()
+
 # Create all tables when the server starts (if they don't exist yet)
 with app.app_context():
     db.create_all()
+    ensure_menu_item_image_column()
 
 
 def sanitize_cart_items(raw_items):
@@ -57,6 +68,7 @@ def sanitize_cart_items(raw_items):
             "id": item_id,
             "name": str(item.get("name") or "").strip(),
             "description": str(item.get("description") or "").strip(),
+            "image_url": str(item.get("image_url") or "").strip() or None,
             "price": round(price, 2),
             "quantity": quantity,
             "store_id": store_id,
@@ -255,6 +267,7 @@ def get_store_menu_items(store_id):
             "id": item.id,
             "name": item.name,
             "description" : item.description,
+            "image_url": item.image_url,
             "price": float(item.price),
             "store_id": item.store_id,
         })
@@ -277,6 +290,7 @@ def add_menu_item(store_id):
 
     name = data.get("name")
     description = data.get("description", "")
+    image_url = str(data.get("image_url", "") or "").strip()
     price = data.get("price")
 
     if not name:
@@ -292,6 +306,7 @@ def add_menu_item(store_id):
     new_item = MenuItem(
         name=name,
         description=description,
+        image_url=image_url or None,
         price=price,
         store_id=store_id,
     )
@@ -301,7 +316,8 @@ def add_menu_item(store_id):
 
     return jsonify({
         "message": "Menu item added successfully!",
-        "id": new_item.id
+        "id": new_item.id,
+        "image_url": new_item.image_url,
     }), 201
 
 
@@ -369,6 +385,30 @@ def delete_menu_item(store_id, item_id):
     db.session.commit()
 
     return jsonify({"message": f'"{item.name}" was deleted successfully'}), 200
+
+
+# ------------------------------------------------------------------
+# PATCH /api/stores/<store_id>/menu-items/<item_id>/image
+# Updates one menu item's image URL.
+# Body: { "image_url": "https://..." }
+# ------------------------------------------------------------------
+@app.route("/api/stores/<int:store_id>/menu-items/<int:item_id>/image", methods=["PATCH"])
+def update_menu_item_image(store_id, item_id):
+    item = MenuItem.query.filter_by(id=item_id, store_id=store_id).first()
+    if not item:
+        return jsonify({"message": "Item not found"}), 404
+
+    data = request.get_json() or {}
+    image_url = str(data.get("image_url", "") or "").strip()
+
+    item.image_url = image_url or None
+    db.session.commit()
+
+    return jsonify({
+        "message": "Item photo updated",
+        "id": item.id,
+        "image_url": item.image_url,
+    }), 200
 
 
 # ============================================================
