@@ -135,6 +135,7 @@ const styles = `
 
   .menu-info { flex: 1; }
   .menu-name  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .menu-desc  { font-size: 12px; color: var(--muted); margin-bottom: 3px; line-height: 1.35; }
   .menu-price { font-size: 13px; color: var(--muted); font-weight: 500; }
 
   .add-btn {
@@ -252,7 +253,7 @@ export default function CustomerOrder() {
       const res = await fetch(`${API}/api/stores/${storeId}/menu-items`);
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Failed to load menu.'); setMenuItems([]); }
-      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, price: Number(i.price) || 0, store_id: i.store_id })) : []);
+      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, description: i.description || '', price: Number(i.price) || 0, store_id: i.store_id })) : []);
     } catch { setError('Could not load menu items.'); setMenuItems([]); }
     setLoadingMenu(false);
   }, []);
@@ -273,7 +274,11 @@ export default function CustomerOrder() {
     if (!query) {
       return menuItems;
     }
-    return menuItems.filter((item) => item.name.toLowerCase().includes(query));
+    return menuItems.filter((item) => {
+      const nameMatch = item.name.toLowerCase().includes(query);
+      const descMatch = (item.description || '').toLowerCase().includes(query);
+      return nameMatch || descMatch;
+    });
   }, [menuItems, menuSearchTerm]);
 
   const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.price * i.quantity, 0), [cartItems]);
@@ -403,6 +408,7 @@ export default function CustomerOrder() {
                       <div key={item.id} className="menu-row" style={{ animationDelay: `${idx * 0.04}s` }}>
                         <div className="menu-info">
                           <div className="menu-name">{item.name}</div>
+                          {item.description && <div className="menu-desc">{item.description}</div>}
                           <div className="menu-price">{toCurrency(item.price)}</div>
                         </div>
                         <button className="add-btn" type="button" onClick={() => addToCart(item)}>+</button>

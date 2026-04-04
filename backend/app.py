@@ -49,13 +49,26 @@ def health():
 # Returns: a token if successful
 @app.route("/api/user/signin", methods=["POST"])
 def user_signin():
-    data     = request.get_json()
+    data     = request.get_json() or {}
     username = data.get("username")
     password = data.get("password")
 
-    if username and password:
-        return jsonify({"token": "user-token-123", "username": username, "message": "User sign-in successful"}), 200
-    return jsonify({"message": "Username and password are required"}), 400
+    if not username or not password:
+        return jsonify({"message": "Username and password are required"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user or user.password != password:
+        return jsonify({"message": "Invalid username or password"}), 401
+
+    if user.role not in ("customer", "user"):
+        return jsonify({"message": "Please sign in from your role portal"}), 403
+
+    return jsonify({
+        "token": "user-token-123",
+        "username": user.username,
+        "role": "customer",
+        "message": "User sign-in successful",
+    }), 200
 
 # POST /api/admin/signin
 # Body: { "username": "...", "password": "..." }
@@ -303,7 +316,7 @@ def create_order():
 
     if not customer:
         return jsonify({"message": "Customer not found"}), 404
-    if customer.role != "customer":
+    if customer.role not in ("customer", "user"):
         return jsonify({"message": "Only customers can place orders"}), 403
 
     new_order = Order(
