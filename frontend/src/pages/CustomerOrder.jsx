@@ -183,8 +183,37 @@ const styles = `
 const categoryEmojis = { pizza:'🍕', burger:'🍔', sushi:'🍣', chinese:'🥡', mexican:'🌮', italian:'🍝', indian:'🍛', thai:'🍜', salad:'🥗', dessert:'🍰', breakfast:'🍳', coffee:'☕', general:'🍽️' };
 function storeEmoji(cat) { return categoryEmojis[(cat || '').toLowerCase()] || '🍽️'; }
 
+function normalizeCartItems(rawItems) {
+  if (!Array.isArray(rawItems)) {
+    return [];
+  }
+
+  return rawItems
+    .map((item) => {
+      const id = Number(item?.id);
+      const price = Number(item?.price);
+      const quantity = Number(item?.quantity);
+      const storeId = item?.store_id == null ? null : Number(item.store_id);
+
+      if (!Number.isFinite(id) || id <= 0 || !Number.isFinite(price) || !Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+      }
+
+      return {
+        id,
+        name: item?.name || '',
+        description: item?.description || '',
+        price,
+        quantity,
+        store_id: Number.isFinite(storeId) ? storeId : null,
+      };
+    })
+    .filter(Boolean);
+}
+
 export default function CustomerOrder() {
   const navigate = useNavigate();
+  const username = localStorage.getItem('username');
 
   const [stores, setStores] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
@@ -197,6 +226,7 @@ export default function CustomerOrder() {
   const [menuSearchTerm, setMenuSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cartSyncReady, setCartSyncReady] = useState(false);
 
   const fetchStores = useCallback(async () => {
     setLoadingStores(true); setError('');
@@ -209,12 +239,62 @@ export default function CustomerOrder() {
     setLoadingStores(false);
   }, []);
 
+  const fetchSavedCart = useCallback(async () => {
+    if (!username) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/users/${encodeURIComponent(username)}/cart`);
+      const data = await res.json();
+
+      if (res.ok) {
+        const normalizedItems = normalizeCartItems(data.items);
+        const parsedStoreId = Number(data.store_id);
+        setCartItems(normalizedItems);
+        setSelectedStoreId(Number.isFinite(parsedStoreId) ? parsedStoreId : null);
+      }
+
+      setCartSyncReady(true);
+    } catch {
+      setCartSyncReady(false);
+    }
+  }, [username]);
+
+  const saveCartToAccount = useCallback(async (nextStoreId, nextItems) => {
+    if (!username) {
+      return;
+    }
+
+    try {
+      await fetch(`${API}/api/users/${encodeURIComponent(username)}/cart`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          store_id: nextStoreId,
+          items: nextItems,
+        }),
+      });
+    } catch {
+      // Keep cart usable locally if the save request fails.
+    }
+  }, [username]);
+
   useEffect(() => {
     const role = localStorage.getItem('role');
     if (role !== 'customer' && role !== 'user') { navigate('/signin/user'); return; }
     fetchStores();
+    fetchSavedCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!cartSyncReady) {
+      return;
+    }
+
+    saveCartToAccount(selectedStoreId, cartItems);
+  }, [cartSyncReady, selectedStoreId, cartItems, saveCartToAccount]);
 
   const openStores = useMemo(() => stores.filter((s) => (s.status || '').toLowerCase() === 'open'), [stores]);
   const availableCategories = useMemo(() => {
@@ -299,7 +379,7 @@ export default function CustomerOrder() {
   }
 
   function handleLogout() {
-    localStorage.removeItem('token'); localStorage.removeItem('role');
+    localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('username');
     navigate('/signin/user');
   }
 

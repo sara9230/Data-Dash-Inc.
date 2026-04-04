@@ -10,7 +10,8 @@
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from database.models import db, User, Store, MenuItem, Order
+from database.models import db, User, Store, MenuItem, Order, UserCart
+import json
 
 app = Flask(__name__)
 CORS(app)  # allow requests from the React frontend (different port)
@@ -25,6 +26,43 @@ db.init_app(app)
 # Create all tables when the server starts (if they don't exist yet)
 with app.app_context():
     db.create_all()
+
+
+def sanitize_cart_items(raw_items):
+    if not isinstance(raw_items, list):
+        return []
+
+    sanitized = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+
+        try:
+            item_id = int(item.get("id"))
+            price = float(item.get("price", 0))
+            quantity = int(item.get("quantity", 0))
+        except (TypeError, ValueError):
+            continue
+
+        if item_id <= 0 or quantity <= 0:
+            continue
+
+        store_id = item.get("store_id")
+        try:
+            store_id = int(store_id) if store_id is not None else None
+        except (TypeError, ValueError):
+            store_id = None
+
+        sanitized.append({
+            "id": item_id,
+            "name": str(item.get("name") or "").strip(),
+            "description": str(item.get("description") or "").strip(),
+            "price": round(price, 2),
+            "quantity": quantity,
+            "store_id": store_id,
+        })
+
+    return sanitized
 
 
 # ============================================================
@@ -109,6 +147,67 @@ def register():
     db.session.commit()
 
     return jsonify({"message": "Registered successfully!"}), 201
+
+
+@app.route("/api/users/<string:username>/cart", methods=["GET"])
+def get_user_cart(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    if user.role not in ("customer", "user"):
+        return jsonify({"message": "Only customers have carts"}), 403
+
+    cart = UserCart.query.filter_by(user_id=user.id).first()
+    if not cart:
+        return jsonify({"store_id": None, "items": []}), 200
+
+    try:
+        items = json.loads(cart.items_json or "[]")
+    except (TypeError, ValueError):
+        items = []
+
+    return jsonify({
+        "store_id": cart.store_id,
+        "items": sanitize_cart_items(items),
+    }), 200
+
+
+@app.route("/api/users/<string:username>/cart", methods=["PUT"])
+def save_user_cart(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    if user.role not in ("customer", "user"):
+        return jsonify({"message": "Only customers have carts"}), 403
+
+    data = request.get_json() or {}
+
+    raw_store_id = data.get("store_id")
+    if raw_store_id is None:
+        store_id = None
+    else:
+        try:
+            store_id = int(raw_store_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "store_id must be a number or null"}), 400
+
+    items = sanitize_cart_items(data.get("items", []))
+
+    if store_id is not None:
+        for item in items:
+            if item.get("store_id") is not None and item["store_id"] != store_id:
+                return jsonify({"message": "All cart items must belong to the selected store"}), 400
+
+    cart = UserCart.query.filter_by(user_id=user.id).first()
+    if not cart:
+        cart = UserCart(user_id=user.id)
+        db.session.add(cart)
+
+    cart.store_id = store_id
+    cart.items_json = json.dumps(items)
+    db.session.commit()
+
+    return jsonify({"message": "Cart saved", "store_id": cart.store_id, "items": items}), 200
 
 # ============================================================
 # STORE (RESTAURANT) ROUTES
