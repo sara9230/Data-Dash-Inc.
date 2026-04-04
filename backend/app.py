@@ -8,11 +8,13 @@
 # Each @app.route(...) is one endpoint (URL).
 # ============================================================
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from database.models import db, User, Store, MenuItem, Order, UserCart
 import json
 from sqlalchemy import text
+from werkzeug.utils import secure_filename
+import uuid
 
 app = Flask(__name__)
 CORS(app)  # allow requests from the React frontend (different port)
@@ -21,6 +23,10 @@ import os
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + BASE_DIR + '/database/app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+
+UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads', 'menu-items')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 db.init_app(app)
 
@@ -77,6 +83,10 @@ def sanitize_cart_items(raw_items):
     return sanitized
 
 
+def is_allowed_png(filename):
+    return filename.lower().endswith('.png')
+
+
 # ============================================================
 # GENERAL ROUTES
 # ============================================================
@@ -88,6 +98,52 @@ def home():
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+@app.errorhandler(413)
+def file_too_large(_error):
+    return jsonify({'message': 'File is too large. Max size is 10 MB.'}), 413
+
+
+@app.route('/uploads/menu-items/<path:filename>', methods=['GET'])
+def serve_menu_item_upload(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
+
+
+@app.route('/api/uploads/menu-item-image', methods=['POST'])
+def upload_menu_item_image():
+    file = request.files.get('image')
+    if not file:
+        return jsonify({'message': 'PNG image file is required'}), 400
+
+    if not file.filename:
+        return jsonify({'message': 'File name is required'}), 400
+
+    if not is_allowed_png(file.filename):
+        return jsonify({'message': 'Only .png files are allowed'}), 400
+
+    mime_type = (file.mimetype or '').lower()
+    if mime_type not in ('image/png', 'image/x-png', 'application/octet-stream'):
+        return jsonify({'message': 'Only PNG images are allowed'}), 400
+
+    head = file.stream.read(8)
+    file.stream.seek(0)
+    if head != b'\x89PNG\r\n\x1a\n':
+        return jsonify({'message': 'Invalid PNG file'}), 400
+
+    safe_name = secure_filename(file.filename)
+    unique_name = f"{uuid.uuid4().hex}-{safe_name}"
+    target_path = os.path.join(UPLOAD_DIR, unique_name)
+    file.save(target_path)
+
+    public_path = f"/uploads/menu-items/{unique_name}"
+    public_url = request.host_url.rstrip('/') + public_path
+
+    return jsonify({
+        'message': 'Image uploaded successfully',
+        'image_url': public_url,
+        'image_path': public_path,
+    }), 201
 
 
 # ============================================================
