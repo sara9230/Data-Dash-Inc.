@@ -32,7 +32,7 @@ function Landing() {
       {/* ── NAV ── */}
       <nav className="dd-nav">
         <a href="/" className="dd-nav-logo">
-          <img src="/data-dash-logo.png" alt="DataDash" onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src="/Data Dash Logo.png" alt="DataDash" onError={(e) => { e.target.style.display = 'none'; }} />
           <span className="dd-nav-wordmark">DataDash</span>
         </a>
         <ul className="dd-nav-links">

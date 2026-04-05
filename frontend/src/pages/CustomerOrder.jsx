@@ -308,8 +308,10 @@ export default function CustomerOrder() {
       <style>{styles}</style>
       <div>
         <header className="header">
-          <div className="logo">Data<span>Dash</span></div>
-          <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
+        <div className="logo">
+          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '50px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        </div>          
+        <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
         </header>
 
         {error   && <div className="alert error">{error}</div>}
