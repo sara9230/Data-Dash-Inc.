@@ -28,6 +28,13 @@ function UserSignIn() {
         localStorage.setItem('role', data.role || 'customer');
         localStorage.setItem('username', data.username); // add this
         navigate('/dashboard');
+
+        // Redirect based on role
+        if (data.role === 'driver') {
+          navigate('/driver/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(data.message || 'Sign in failed');
       }

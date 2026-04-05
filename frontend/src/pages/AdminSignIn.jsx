@@ -67,6 +67,7 @@ function AdminSignIn() {
             <button type="submit">Sign in as admin</button>
           </form>
           <p className="signin-link">Not an admin? <a href="/signin/user">Customer sign in</a></p>
+          <p className="signin-link" style={{ marginTop: '8px' }}>Driver? Sign in with your driver account above.</p>
         </div>
       </div>
     </div>

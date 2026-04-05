@@ -60,13 +60,13 @@ def user_signin():
     if not user or user.password != password:
         return jsonify({"message": "Invalid username or password"}), 401
 
-    if user.role not in ("customer", "user"):
+    if user.role not in ("customer", "user", "driver"):
         return jsonify({"message": "Please sign in from your role portal"}), 403
 
     return jsonify({
         "token": "user-token-123",
         "username": user.username,
-        "role": "customer",
+        "role": user.role,        # was hardcoded to "customer" — now returns the real role
         "message": "User sign-in successful",
     }), 200
 
