@@ -330,8 +330,11 @@ export default function AdminDashboard() {
     <>
       <style>{S}</style>
       <header className="header">
-        <div className="logo">Data<span>Dash</span><span className="badge">Admin</span></div>
-        <button className="btn-outline" type="button" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('role'); navigate('/signin/admin'); }}>Sign out</button>
+      <div className="logo">
+        <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '50px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        <span className="badge">Admin</span>
+      </div>
+      <button className="btn-outline" type="button" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('role'); navigate('/signin/admin'); }}>Sign out</button>
       </header>
 
       <div className="page">

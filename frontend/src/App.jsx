@@ -32,7 +32,7 @@ function Landing() {
       {/* ── NAV ── */}
       <nav className="dd-nav">
         <a href="/" className="dd-nav-logo">
-          <img src="/data-dash-logo.png" alt="DataDash" onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src="/Data Dash Logo.png" alt="DataDash" onError={(e) => { e.target.style.display = 'none'; }} />
           <span className="dd-nav-wordmark">DataDash</span>
         </a>
         <ul className="dd-nav-links">
@@ -59,8 +59,8 @@ function Landing() {
           </p>
           <div className="dd-hero-actions">
             <a href="/signin/user" className="dd-btn-primary">🍔 Order now</a>
-            <a href="/register" className="dd-btn-secondary">Create account</a>
-            <a href="/driver/dashboard" className="dd-btn-ghost">Deliver with us →</a>
+            <a href="/register" className="dd-btn-secondary">Create account</a> 
+          <a href="/signin/user" className="dd-btn-ghost">Deliver with us →</a>
           </div>
         </div>
 
@@ -112,7 +112,7 @@ function Landing() {
         <div className="dd-roles-grid">
           {[
             { icon: '🧑‍💻', title: 'Customers',          desc: 'Browse menus, place orders, and track your delivery in real time.',           href: '/signin/user',        cta: 'Order now' },
-            { icon: '🚴',   title: 'Drivers',             desc: 'Pick up orders nearby, deliver them, and earn on your own schedule.',         href: '/driver/dashboard',   cta: 'Start delivering' },
+            { icon: '🚴',   title: 'Drivers',             desc: 'Pick up orders nearby, deliver them, and earn on your own schedule.',         href: '/signin/user',   cta: 'Start delivering' },
             { icon: '🏪',   title: 'Restaurant Admins',   desc: 'Add your restaurant, manage your menu, and reach more customers.',            href: '/signin/admin',       cta: 'Manage platform' },
           ].map((role) => (
             <a href={role.href} className="dd-role-card" key={role.title}>

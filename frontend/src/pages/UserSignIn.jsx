@@ -28,6 +28,13 @@ function UserSignIn() {
         localStorage.setItem('role', data.role || 'customer');
         localStorage.setItem('username', data.username); // add this
         navigate('/dashboard');
+
+        // Redirect based on role
+        if (data.role === 'driver') {
+          navigate('/driver/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(data.message || 'Sign in failed');
       }
@@ -39,7 +46,9 @@ function UserSignIn() {
     return (
     <div className="signin-wrapper">
       <div className="signin-left">
-        <a href="/" className="signin-left-logo">DataDash</a>
+        <a href="/" className="signin-left-logo">
+          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '250px' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        </a>        
         <h2 className="signin-left-headline">
           Good food is<br />
           <em>one tap away.</em>

@@ -6,6 +6,10 @@ const API = 'http://127.0.0.1:5000';
 function toCurrency(value) {
   return `$${value.toFixed(2)}`;
 }
+function formatTime(isoString) {
+  if (!isoString) return '';
+  return new Date(isoString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
@@ -187,6 +191,10 @@ const styles = `
   .place-btn:hover:not(:disabled) { background: #c5290a; }
   .place-btn:disabled { background: #d5d2cc; color: #aaa; cursor: not-allowed; }
   .hint { font-size: 13px; color: var(--muted); font-weight: 500; }
+  /* ORDER STATUS */
+  .order-box { ... }
+  .order-title { ... }
+  /* etc */
 `;
 
 const categoryEmojis = { pizza:'🍕', burger:'🍔', sushi:'🍣', chinese:'🥡', mexican:'🌮', italian:'🍝', indian:'🍛', thai:'🍜', salad:'🥗', dessert:'🍰', breakfast:'🍳', coffee:'☕', general:'🍽️' };
@@ -237,6 +245,7 @@ export default function CustomerOrder() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cartSyncReady, setCartSyncReady] = useState(false);
+  const [orders, setOrders] = useState([]);
 
   const fetchStores = useCallback(async () => {
     setLoadingStores(true); setError('');
@@ -297,6 +306,24 @@ export default function CustomerOrder() {
     fetchSavedCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Load customer orders - refresh every 5 seconds
+useEffect(() => {
+  async function loadOrders() {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+    try {
+      const res = await fetch(`${API}/api/orders?customer_username=${username}`);
+      const data = await res.json();
+      setOrders(data || []);
+    } catch (err) {
+      console.log('Error loading orders:', err);
+    }
+  }
+
+  loadOrders();
+  const interval = setInterval(loadOrders, 5000); // Refresh every 5 seconds
+  return () => clearInterval(interval);
+}, []);
 
   useEffect(() => {
     if (!cartSyncReady) {
@@ -398,15 +425,45 @@ export default function CustomerOrder() {
       <style>{styles}</style>
       <div>
         <header className="header">
-          <div className="logo">Data<span>Dash</span></div>
-          <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
+        <div className="logo">
+          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '50px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        </div>          
+        <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
         </header>
 
         {error   && <div className="alert error">{error}</div>}
         {success && <div className="alert success">{success}</div>}
 
         <div className="page">
-          <div>
+           <div>
+          {/* SHOW CUSTOMER ORDERS */}
+          {orders.length > 0 && (
+            <div className="section">
+              <div className="heading">📦 Your Orders</div>
+              {orders.map((order) => (
+                <div key={order.id} className="order-box">
+                  <div className="order-title">Order #{order.id} • {toCurrency(order.total_price)}</div>
+                  <div className="order-status">
+                    <div className="status-item">
+                      <span className="status-icon">📋</span>
+                      <div className="status-label">Placed</div>
+                      <div className="status-time">{formatTime(order.created_at)}</div>
+                    </div>
+                    <div className="status-item">
+                      <span className="status-icon">{order.status === 'accepted' || order.status === 'delivered' ? '✅' : '⏳'}</span>
+                      <div className="status-label">Accepted</div>
+                      <div className="status-time">{order.accepted_at ? formatTime(order.accepted_at) : '—'}</div>
+                    </div>
+                    <div className="status-item">
+                      <span className="status-icon">{order.status === 'delivered' ? '🎉' : '⏳'}</span>
+                      <div className="status-label">Delivered</div>
+                      <div className="status-time">{order.delivered_at ? formatTime(order.delivered_at) : '—'}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
             <div className="section">
               <div className="eyebrow">Step 1</div>
               <div className="heading">Pick a restaurant</div>

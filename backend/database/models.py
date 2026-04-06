@@ -5,7 +5,7 @@
 # Each class = one table in the database.
 # Each db.Column = one column in that table.
 # ============================================================
-
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -53,3 +53,7 @@ class Order(db.Model):
     store_id    = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
     driver_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     total_price = db.Column(db.Float, nullable=False, default=0.0)  # add this
+
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    delivered_at = db.Column(db.DateTime, nullable=True)

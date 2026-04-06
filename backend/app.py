@@ -9,6 +9,8 @@
 # ============================================================
 
 from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
+from datetime import datetime
 from flask_cors import CORS
 from database.models import db, User, Store, MenuItem, Order, UserCart
 import json
@@ -166,13 +168,13 @@ def user_signin():
     if not user or user.password != password:
         return jsonify({"message": "Invalid username or password"}), 401
 
-    if user.role not in ("customer", "user"):
+    if user.role not in ("customer", "user", "driver"):
         return jsonify({"message": "Please sign in from your role portal"}), 403
 
     return jsonify({
         "token": "user-token-123",
         "username": user.username,
-        "role": "customer",
+        "role": user.role,        # was hardcoded to "customer" — now returns the real role
         "message": "User sign-in successful",
     }), 200
 
@@ -310,15 +312,55 @@ def get_stores():
 # GET /api/stores/<id>/menu-items
 # Returns menu items for one store.
 # ------------------------------------------------------------------
+@app.route("/api/orders", methods=["GET"])
+def get_orders():
+   
+    customer_username = request.args.get('customer_username')
+    
+    if customer_username:
+        
+        customer = User.query.filter_by(username=customer_username).first()
+        if not customer:
+            return jsonify([]), 200
+        orders = Order.query.filter_by(customer_id=customer.id).order_by(Order.created_at.desc()).all()
+    else:
+        
+        orders = Order.query.all()
+    
+    result = []
+    for order in orders:
+       
+        store = Store.query.get(order.store_id)
+        
+        order_data = {
+            "id":          order.id,
+            "status":      order.status,
+            "customer_id": order.customer_id,
+            "store_id":    order.store_id,
+            "store_name":  store.name if store else None,
+            "driver_id":   order.driver_id,
+            "total_price": order.total_price,
+        }
+        
+        if hasattr(order, 'created_at'):
+            order_data['created_at'] = order.created_at.isoformat() if order.created_at else None
+        if hasattr(order, 'accepted_at'):
+            order_data['accepted_at'] = order.accepted_at.isoformat() if order.accepted_at else None
+        if hasattr(order, 'delivered_at'):
+            order_data['delivered_at'] = order.delivered_at.isoformat() if order.delivered_at else None
+        
+        result.append(order_data)
+    
+    return jsonify(result), 200
 @app.route("/api/stores/<int:store_id>/menu-items", methods=["GET"])
-def get_store_menu_items(store_id):
+def get_menu_items(store_id):
     store = Store.query.get(store_id)
     if not store:
         return jsonify({"message": "Store not found"}), 404
 
-    menu_items = MenuItem.query.filter_by(store_id=store_id).order_by(MenuItem.name.asc()).all()
+    items = MenuItem.query.filter_by(store_id=store_id).all()
     result = []
-    for item in menu_items:
+    for item in items:
         result.append({
             "id": item.id,
             "name": item.name,
@@ -327,9 +369,7 @@ def get_store_menu_items(store_id):
             "price": float(item.price),
             "store_id": item.store_id,
         })
-
     return jsonify(result), 200
-
 
 # ------------------------------------------------------------------
 # POST /api/stores/<store_id>/menu-items
@@ -531,25 +571,6 @@ def create_order():
         "status": new_order.status,
     }), 201
 
-# GET /api/orders
-# Returns all orders (drivers use this to see pending ones)
-@app.route("/api/orders", methods=["GET"])
-def get_orders():
-    orders = Order.query.all()
-    result = []
-    for order in orders:
-        # Look up the store name for a friendlier display
-        store = Store.query.get(order.store_id)
-        result.append({
-            "id":          order.id,
-            "status":      order.status,
-            "customer_id": order.customer_id,
-            "store_id":    order.store_id,
-            "store_name":  store.name if store else None,
-            "driver_id":   order.driver_id,
-        })
-    return jsonify(result), 200
-
 
 # POST /api/orders/<id>/accept
 # Driver accepts a pending order
@@ -569,9 +590,11 @@ def accept_order(order_id):
 
     order.status    = "accepted"
     order.driver_id = driver_id
+    order.accepted_at = datetime.utcnow() 
     db.session.commit()
 
     return jsonify({"message": "Order accepted!"}), 200
+
 
 
 # POST /api/orders/<id>/deliver
@@ -585,6 +608,7 @@ def deliver_order(order_id):
         return jsonify({"message": "Order must be accepted before marking delivered"}), 400
 
     order.status = "delivered"
+    order.delivered_at = datetime.utcnow()
     db.session.commit()
 
     return jsonify({"message": "Order marked as delivered!"}), 200

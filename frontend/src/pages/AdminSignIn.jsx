@@ -38,8 +38,10 @@ function AdminSignIn() {
     return (
     <div className="signin-wrapper">
       <div className="signin-left">
-        <a href="/" className="signin-left-logo">DataDash</a>
-        <h2 className="signin-left-headline">
+        <a href="/" className="signin-left-logo">
+          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '250px' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        </a>
+          <h2 className="signin-left-headline">
           Manage your<br />
           <em>restaurants.</em>
         </h2>
@@ -67,6 +69,7 @@ function AdminSignIn() {
             <button type="submit">Sign in as admin</button>
           </form>
           <p className="signin-link">Not an admin? <a href="/signin/user">Customer sign in</a></p>
+          <p className="signin-link" style={{ marginTop: '8px' }}>Driver? Sign in with your driver account above.</p>
         </div>
       </div>
     </div>
