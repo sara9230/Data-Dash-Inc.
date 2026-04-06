@@ -82,6 +82,8 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
+or run ```./run.ps1``` in powershell (only windows).
+
 ---
 
 ## Pages
@@ -94,6 +96,9 @@ Open `http://localhost:5173` in your browser.
 | `/signin/admin` | Admin login | Admins |
 | `/driver/dashboard` | Driver dashboard | Drivers |
 | `/admin/dashboard` | Admin dashboard | Admins |
+| `/dashboard` | User dashboard | Users |
+| `/order/finalize` | Order Finalize | Users |
+| `/reviews` | Restaurant Reviews | Users |
 
 ---
 
@@ -115,13 +120,24 @@ The app calls these URLs automatically — you don't need to use them manually. 
 
 | Method | URL | What it does |
 |---|---|---|
+| GET | `/api/health` | Quick backend health check |
 | POST | `/api/register` | Create a new account |
 | POST | `/api/user/signin` | Log in as a user |
 | POST | `/api/admin/signin` | Log in as admin |
 | GET | `/api/stores` | Get all restaurants |
 | POST | `/api/stores` | Add a restaurant (admin only) |
 | DELETE | `/api/stores/:id` | Remove a restaurant (admin only) |
-| GET | `/api/orders` | Get all orders |
+| GET | `/api/stores/:store_id/menu-items` | Get menu items for one restaurant |
+| POST | `/api/stores/:store_id/menu-items` | Add a menu item to a restaurant |
+| DELETE | `/api/stores/:store_id/menu-items/:item_id` | Remove a menu item |
+| PATCH | `/api/stores/:store_id/menu-items/:item_id/image` | Update one menu item's image URL |
+| POST | `/api/uploads/menu-item-image` | Upload a PNG menu item image |
+| GET | `/api/users/:username/cart` | Load a customer's saved cart |
+| PUT | `/api/users/:username/cart` | Save a customer's cart |
+| GET | `/api/stores/:store_id/reviews` | Get all reviews for a restaurant |
+| POST | `/api/stores/:store_id/reviews` | Create a restaurant review |
+| GET | `/api/orders` | Get all orders, or filter by customer username |
+| POST | `/api/orders` | Create a new order |
 | POST | `/api/orders/:id/accept` | Driver accepts an order |
 | POST | `/api/orders/:id/deliver` | Driver marks order as delivered |
 
@@ -141,12 +157,22 @@ id | name | category | address | phone | status (Open / Closed)
 
 **MenuItem** — items available at each restaurant
 ```
-id | name | price | store_id
+id | name | price | description | image_url | store_id
 ```
 
 **Order** — tracks each delivery from start to finish
 ```
-id | status (pending → accepted → delivered) | customer_id | store_id | driver_id
+id | status (pending → accepted → delivered) | customer_id | store_id | driver_id | total_price | created_at | accepted_at | delivered_at
+```
+
+**UserCart** — saved cart for each customer
+```
+id | user_id | store_id | items_json
+```
+
+**Review** — customer reviews for restaurants
+```
+id | user_id | store_id | rating | text | created_at
 ```
 
 ---
