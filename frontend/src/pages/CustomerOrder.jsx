@@ -505,8 +505,11 @@ useEffect(() => {
           <button className="logo-btn" type="button" onClick={handleLogoClick} aria-label="Go to main menu and sign out">
             <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '300px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
           </button>
-        </div>          
-        <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button className="logout-btn" type="button" onClick={() => navigate('/reviews')}>Reviews</button>
+          <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>
+        </div>
         </header>
 
         {error   && <div className="alert error">{error}</div>}

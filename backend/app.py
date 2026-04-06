@@ -11,7 +11,7 @@
 from flask import Flask, jsonify, request, send_from_directory
 from datetime import datetime, timezone
 from flask_cors import CORS
-from database.models import db, User, Store, MenuItem, Order, UserCart
+from database.models import db, User, Store, MenuItem, Order, UserCart, Review
 import json
 from sqlalchemy import text
 from werkzeug.utils import secure_filename
@@ -542,6 +542,91 @@ def update_menu_item_image(store_id, item_id):
         "id": item.id,
         "image_url": item.image_url,
     }), 200
+
+
+# ============================================================
+# REVIEW ROUTES
+# ============================================================
+
+# GET /api/stores/<store_id>/reviews
+# Returns all reviews for a store
+@app.route("/api/stores/<int:store_id>/reviews", methods=["GET"])
+def get_store_reviews(store_id):
+    store = Store.query.get(store_id)
+    if not store:
+        return jsonify({"message": "Store not found"}), 404
+
+    reviews = Review.query.filter_by(store_id=store_id).order_by(Review.created_at.desc()).all()
+    
+    result = []
+    for review in reviews:
+        user = User.query.get(review.user_id)
+        result.append({
+            "id": review.id,
+            "user_id": review.user_id,
+            "username": user.username if user else "Anonymous",
+            "store_id": review.store_id,
+            "rating": review.rating,
+            "text": review.text,
+            "created_at": to_utc_iso(review.created_at)
+        })
+    
+    return jsonify(result), 200
+
+
+# POST /api/stores/<store_id>/reviews
+# Create a new review
+# Body: { "customer_username": "alice", "rating": 5, "text": "Great food!" }
+@app.route("/api/stores/<int:store_id>/reviews", methods=["POST"])
+def create_review(store_id):
+    store = Store.query.get(store_id)
+    if not store:
+        return jsonify({"message": "Store not found"}), 404
+
+    data = request.get_json() or {}
+
+    customer_username = data.get("customer_username")
+    if not customer_username:
+        return jsonify({"message": "customer_username is required"}), 400
+
+    user = User.query.filter_by(username=customer_username).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    rating = data.get("rating")
+    text = data.get("text", "").strip()
+
+    if rating is None:
+        return jsonify({"message": "rating is required"}), 400
+    
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({"message": "rating must be a number"}), 400
+
+    if rating < 1 or rating > 5:
+        return jsonify({"message": "rating must be between 1 and 5"}), 400
+
+    if not text:
+        return jsonify({"message": "Review text is required"}), 400
+
+    if len(text) > 500:
+        return jsonify({"message": "Review text must be 500 characters or less"}), 400
+
+    new_review = Review(
+        user_id=user.id,
+        store_id=store_id,
+        rating=rating,
+        text=text
+    )
+
+    db.session.add(new_review)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Review created successfully!",
+        "id": new_review.id
+    }), 201
 
 
 # ============================================================

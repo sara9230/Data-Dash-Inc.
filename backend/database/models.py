@@ -57,3 +57,13 @@ class Order(db.Model):
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
     accepted_at = db.Column(db.DateTime, nullable=True)
     delivered_at = db.Column(db.DateTime, nullable=True)
+
+
+class Review(db.Model):
+    __tablename__ = 'reviews'
+    id        = db.Column(db.Integer, primary_key=True)
+    user_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    store_id  = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
+    rating    = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    text      = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
