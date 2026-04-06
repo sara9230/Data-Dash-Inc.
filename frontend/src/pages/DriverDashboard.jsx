@@ -48,6 +48,7 @@ const styles = `
 
   .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; }
   .logo span { color: var(--red); }
+  .logo-btn { background: none; border: none; padding: 0; display: inline-flex; align-items: center; cursor: pointer; }
 
   .badge {
     font-size: 11px; font-weight: 700;
@@ -237,6 +238,13 @@ export default function DriverDashboard() {
     navigate('/signin/user');
   }
 
+  function handleLogoClick() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    navigate('/');
+  }
+
   const MY_DRIVER_ID = 1;
 
   const availableOrders = orders.filter((o) => o.status === 'pending');
@@ -253,7 +261,9 @@ export default function DriverDashboard() {
         {/* ── HEADER ── */}
         <header className="header">
           <div className="logo">
-            <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '50px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+            <button className="logo-btn" type="button" onClick={handleLogoClick} aria-label="Go to main menu and sign out">
+              <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '300px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+            </button>
             <span className="badge">Driver</span>
           </div>
           <button className="logout-btn" type="button" onClick={handleLogout}>Sign out</button>

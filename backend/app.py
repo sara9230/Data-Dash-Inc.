@@ -9,7 +9,6 @@
 # ============================================================
 
 from flask import Flask, jsonify, request, send_from_directory
-from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_cors import CORS
 from database.models import db, User, Store, MenuItem, Order, UserCart
@@ -41,10 +40,35 @@ def ensure_menu_item_image_column():
         db.session.execute(text("ALTER TABLE menu_items ADD COLUMN image_url VARCHAR(500)"))
         db.session.commit()
 
+
+def ensure_order_columns():
+    # Keep the orders table in sync for older local databases without full migrations.
+    result = db.session.execute(text("PRAGMA table_info('order')"))
+    columns = [row[1] for row in result.fetchall()]
+
+    statements = []
+    if "total_price" not in columns:
+        statements.append("ALTER TABLE 'order' ADD COLUMN total_price FLOAT DEFAULT 0.0")
+    if "created_at" not in columns:
+        statements.append("ALTER TABLE 'order' ADD COLUMN created_at DATETIME")
+    if "accepted_at" not in columns:
+        statements.append("ALTER TABLE 'order' ADD COLUMN accepted_at DATETIME")
+    if "delivered_at" not in columns:
+        statements.append("ALTER TABLE 'order' ADD COLUMN delivered_at DATETIME")
+
+    for statement in statements:
+        db.session.execute(text(statement))
+
+    if statements:
+        db.session.execute(text("UPDATE 'order' SET total_price = 0.0 WHERE total_price IS NULL"))
+        db.session.execute(text("UPDATE 'order' SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
+        db.session.commit()
+
 # Create all tables when the server starts (if they don't exist yet)
 with app.app_context():
     db.create_all()
     ensure_menu_item_image_column()
+    ensure_order_columns()
 
 
 def sanitize_cart_items(raw_items):

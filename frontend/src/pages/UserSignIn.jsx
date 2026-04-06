@@ -47,7 +47,7 @@ function UserSignIn() {
     <div className="signin-wrapper">
       <div className="signin-left">
         <a href="/" className="signin-left-logo">
-          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '250px' }} onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '600px' }} onError={(e) => { e.target.style.display = 'none'; }} />
         </a>        
         <h2 className="signin-left-headline">
           Good food is<br />

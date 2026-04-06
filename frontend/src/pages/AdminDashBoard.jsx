@@ -15,6 +15,7 @@ const S = `
   .header { background: #edeae4; border-bottom: 1px solid #e0ddd8; height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 50; }
   .logo { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
   .logo span { color: #e8300a; }
+  .logo-btn { background: none; border: none; padding: 0; display: inline-flex; align-items: center; cursor: pointer; }
   .badge { font-size: 11px; font-weight: 700; background: #111; color: #fff; padding: 2px 8px; border-radius: 100px; margin-left: 8px; vertical-align: middle; }
   .btn-outline { background: none; border: 1.5px solid #ccc; color: #111; padding: 7px 18px; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .btn-outline:hover { border-color: #111; }
@@ -321,6 +322,13 @@ export default function AdminDashboard() {
 
   function toast2(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
+  function handleLogoClick() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    navigate('/');
+  }
+
   const filtered = restaurants.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
     r.category.toLowerCase().includes(search.toLowerCase())
@@ -331,7 +339,9 @@ export default function AdminDashboard() {
       <style>{S}</style>
       <header className="header">
       <div className="logo">
-        <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '50px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        <button className="logo-btn" type="button" onClick={handleLogoClick} aria-label="Go to main menu and sign out">
+          <img src="/Data Dash Logo.png" alt="DataDash" style={{ height: '300px', verticalAlign: 'middle' }} onError={(e) => { e.target.style.display = 'none'; }} />
+        </button>
         <span className="badge">Admin</span>
       </div>
       <button className="btn-outline" type="button" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('role'); navigate('/signin/admin'); }}>Sign out</button>
