@@ -8,10 +8,15 @@
 # Each @app.route(...) is one endpoint (URL).
 # ============================================================
 
+from flask import Flask, jsonify, request, send_from_directory
 from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_cors import CORS
-from database.models import db, User, Store, MenuItem, Order
+from database.models import db, User, Store, MenuItem, Order, UserCart
+import json
+from sqlalchemy import text
+from werkzeug.utils import secure_filename
+import uuid
 
 app = Flask(__name__)
 CORS(app)  # allow requests from the React frontend (different port)
@@ -20,12 +25,68 @@ import os
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + BASE_DIR + '/database/app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
+
+UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads', 'menu-items')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 db.init_app(app)
+
+
+def ensure_menu_item_image_column():
+    # Lightweight migration so existing SQLite databases get the new image_url column.
+    result = db.session.execute(text("PRAGMA table_info(menu_items)"))
+    columns = [row[1] for row in result.fetchall()]
+    if "image_url" not in columns:
+        db.session.execute(text("ALTER TABLE menu_items ADD COLUMN image_url VARCHAR(500)"))
+        db.session.commit()
 
 # Create all tables when the server starts (if they don't exist yet)
 with app.app_context():
     db.create_all()
+    ensure_menu_item_image_column()
+
+
+def sanitize_cart_items(raw_items):
+    if not isinstance(raw_items, list):
+        return []
+
+    sanitized = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+
+        try:
+            item_id = int(item.get("id"))
+            price = float(item.get("price", 0))
+            quantity = int(item.get("quantity", 0))
+        except (TypeError, ValueError):
+            continue
+
+        if item_id <= 0 or quantity <= 0:
+            continue
+
+        store_id = item.get("store_id")
+        try:
+            store_id = int(store_id) if store_id is not None else None
+        except (TypeError, ValueError):
+            store_id = None
+
+        sanitized.append({
+            "id": item_id,
+            "name": str(item.get("name") or "").strip(),
+            "description": str(item.get("description") or "").strip(),
+            "image_url": str(item.get("image_url") or "").strip() or None,
+            "price": round(price, 2),
+            "quantity": quantity,
+            "store_id": store_id,
+        })
+
+    return sanitized
+
+
+def is_allowed_png(filename):
+    return filename.lower().endswith('.png')
 
 
 # ============================================================
@@ -39,6 +100,52 @@ def home():
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+@app.errorhandler(413)
+def file_too_large(_error):
+    return jsonify({'message': 'File is too large. Max size is 10 MB.'}), 413
+
+
+@app.route('/uploads/menu-items/<path:filename>', methods=['GET'])
+def serve_menu_item_upload(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
+
+
+@app.route('/api/uploads/menu-item-image', methods=['POST'])
+def upload_menu_item_image():
+    file = request.files.get('image')
+    if not file:
+        return jsonify({'message': 'PNG image file is required'}), 400
+
+    if not file.filename:
+        return jsonify({'message': 'File name is required'}), 400
+
+    if not is_allowed_png(file.filename):
+        return jsonify({'message': 'Only .png files are allowed'}), 400
+
+    mime_type = (file.mimetype or '').lower()
+    if mime_type not in ('image/png', 'image/x-png', 'application/octet-stream'):
+        return jsonify({'message': 'Only PNG images are allowed'}), 400
+
+    head = file.stream.read(8)
+    file.stream.seek(0)
+    if head != b'\x89PNG\r\n\x1a\n':
+        return jsonify({'message': 'Invalid PNG file'}), 400
+
+    safe_name = secure_filename(file.filename)
+    unique_name = f"{uuid.uuid4().hex}-{safe_name}"
+    target_path = os.path.join(UPLOAD_DIR, unique_name)
+    file.save(target_path)
+
+    public_path = f"/uploads/menu-items/{unique_name}"
+    public_url = request.host_url.rstrip('/') + public_path
+
+    return jsonify({
+        'message': 'Image uploaded successfully',
+        'image_url': public_url,
+        'image_path': public_path,
+    }), 201
 
 
 # ============================================================
@@ -110,6 +217,67 @@ def register():
     db.session.commit()
 
     return jsonify({"message": "Registered successfully!"}), 201
+
+
+@app.route("/api/users/<string:username>/cart", methods=["GET"])
+def get_user_cart(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    if user.role not in ("customer", "user"):
+        return jsonify({"message": "Only customers have carts"}), 403
+
+    cart = UserCart.query.filter_by(user_id=user.id).first()
+    if not cart:
+        return jsonify({"store_id": None, "items": []}), 200
+
+    try:
+        items = json.loads(cart.items_json or "[]")
+    except (TypeError, ValueError):
+        items = []
+
+    return jsonify({
+        "store_id": cart.store_id,
+        "items": sanitize_cart_items(items),
+    }), 200
+
+
+@app.route("/api/users/<string:username>/cart", methods=["PUT"])
+def save_user_cart(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    if user.role not in ("customer", "user"):
+        return jsonify({"message": "Only customers have carts"}), 403
+
+    data = request.get_json() or {}
+
+    raw_store_id = data.get("store_id")
+    if raw_store_id is None:
+        store_id = None
+    else:
+        try:
+            store_id = int(raw_store_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "store_id must be a number or null"}), 400
+
+    items = sanitize_cart_items(data.get("items", []))
+
+    if store_id is not None:
+        for item in items:
+            if item.get("store_id") is not None and item["store_id"] != store_id:
+                return jsonify({"message": "All cart items must belong to the selected store"}), 400
+
+    cart = UserCart.query.filter_by(user_id=user.id).first()
+    if not cart:
+        cart = UserCart(user_id=user.id)
+        db.session.add(cart)
+
+    cart.store_id = store_id
+    cart.items_json = json.dumps(items)
+    db.session.commit()
+
+    return jsonify({"message": "Cart saved", "store_id": cart.store_id, "items": items}), 200
 
 # ============================================================
 # STORE (RESTAURANT) ROUTES
@@ -194,11 +362,12 @@ def get_menu_items(store_id):
     result = []
     for item in items:
         result.append({
-            "id":          item.id,
-            "name":        item.name,
-            "description": item.description,
-            "price":       item.price,
-            "store_id":    item.store_id,
+            "id": item.id,
+            "name": item.name,
+            "description" : item.description,
+            "image_url": item.image_url,
+            "price": float(item.price),
+            "store_id": item.store_id,
         })
     return jsonify(result), 200
 
@@ -217,6 +386,7 @@ def add_menu_item(store_id):
 
     name = data.get("name")
     description = data.get("description", "")
+    image_url = str(data.get("image_url", "") or "").strip()
     price = data.get("price")
 
     if not name:
@@ -232,6 +402,7 @@ def add_menu_item(store_id):
     new_item = MenuItem(
         name=name,
         description=description,
+        image_url=image_url or None,
         price=price,
         store_id=store_id,
     )
@@ -241,7 +412,8 @@ def add_menu_item(store_id):
 
     return jsonify({
         "message": "Menu item added successfully!",
-        "id": new_item.id
+        "id": new_item.id,
+        "image_url": new_item.image_url,
     }), 201
 
 
@@ -309,6 +481,30 @@ def delete_menu_item(store_id, item_id):
     db.session.commit()
 
     return jsonify({"message": f'"{item.name}" was deleted successfully'}), 200
+
+
+# ------------------------------------------------------------------
+# PATCH /api/stores/<store_id>/menu-items/<item_id>/image
+# Updates one menu item's image URL.
+# Body: { "image_url": "https://..." }
+# ------------------------------------------------------------------
+@app.route("/api/stores/<int:store_id>/menu-items/<int:item_id>/image", methods=["PATCH"])
+def update_menu_item_image(store_id, item_id):
+    item = MenuItem.query.filter_by(id=item_id, store_id=store_id).first()
+    if not item:
+        return jsonify({"message": "Item not found"}), 404
+
+    data = request.get_json() or {}
+    image_url = str(data.get("image_url", "") or "").strip()
+
+    item.image_url = image_url or None
+    db.session.commit()
+
+    return jsonify({
+        "message": "Item photo updated",
+        "id": item.id,
+        "image_url": item.image_url,
+    }), 200
 
 
 # ============================================================

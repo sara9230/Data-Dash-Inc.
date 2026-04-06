@@ -18,6 +18,15 @@ class User(db.Model):
     role     = db.Column(db.String(20), nullable=False)  # "customer", "driver", or "admin"
 
 
+class UserCart(db.Model):
+    __tablename__ = 'user_carts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    store_id = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=True)
+    items_json = db.Column(db.Text, nullable=False, default='[]')
+
+
 class Store(db.Model):
     id       = db.Column(db.Integer, primary_key=True)
     name     = db.Column(db.String(120), nullable=False)
@@ -33,6 +42,7 @@ class MenuItem(db.Model):
     name     = db.Column(db.String(120), nullable=False)
     price    = db.Column(db.Float, nullable=False)
     description = db.Column(db.String(200))
+    image_url = db.Column(db.String(500))
     store_id = db.Column(db.Integer, db.ForeignKey('store.id'), nullable=False)
 
 

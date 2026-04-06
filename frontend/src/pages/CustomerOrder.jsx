@@ -137,6 +137,15 @@ const styles = `
   .menu-row:last-child { border-bottom: none; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
+  .menu-photo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    background: #f3f0eb;
+    flex-shrink: 0;
+  }
   .menu-info { flex: 1; }
   .menu-name  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .menu-desc  { font-size: 12px; color: var(--muted); margin-bottom: 3px; line-height: 1.35; }
@@ -191,8 +200,38 @@ const styles = `
 const categoryEmojis = { pizza:'🍕', burger:'🍔', sushi:'🍣', chinese:'🥡', mexican:'🌮', italian:'🍝', indian:'🍛', thai:'🍜', salad:'🥗', dessert:'🍰', breakfast:'🍳', coffee:'☕', general:'🍽️' };
 function storeEmoji(cat) { return categoryEmojis[(cat || '').toLowerCase()] || '🍽️'; }
 
+function normalizeCartItems(rawItems) {
+  if (!Array.isArray(rawItems)) {
+    return [];
+  }
+
+  return rawItems
+    .map((item) => {
+      const id = Number(item?.id);
+      const price = Number(item?.price);
+      const quantity = Number(item?.quantity);
+      const storeId = item?.store_id == null ? null : Number(item.store_id);
+
+      if (!Number.isFinite(id) || id <= 0 || !Number.isFinite(price) || !Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+      }
+
+      return {
+        id,
+        name: item?.name || '',
+        description: item?.description || '',
+        image_url: item?.image_url || '',
+        price,
+        quantity,
+        store_id: Number.isFinite(storeId) ? storeId : null,
+      };
+    })
+    .filter(Boolean);
+}
+
 export default function CustomerOrder() {
   const navigate = useNavigate();
+  const username = localStorage.getItem('username');
 
   const [stores, setStores] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
@@ -205,6 +244,7 @@ export default function CustomerOrder() {
   const [menuSearchTerm, setMenuSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cartSyncReady, setCartSyncReady] = useState(false);
   const [orders, setOrders] = useState([]);
 
   const fetchStores = useCallback(async () => {
@@ -218,10 +258,52 @@ export default function CustomerOrder() {
     setLoadingStores(false);
   }, []);
 
+  const fetchSavedCart = useCallback(async () => {
+    if (!username) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/api/users/${encodeURIComponent(username)}/cart`);
+      const data = await res.json();
+
+      if (res.ok) {
+        const normalizedItems = normalizeCartItems(data.items);
+        const parsedStoreId = Number(data.store_id);
+        setCartItems(normalizedItems);
+        setSelectedStoreId(Number.isFinite(parsedStoreId) ? parsedStoreId : null);
+      }
+
+      setCartSyncReady(true);
+    } catch {
+      setCartSyncReady(false);
+    }
+  }, [username]);
+
+  const saveCartToAccount = useCallback(async (nextStoreId, nextItems) => {
+    if (!username) {
+      return;
+    }
+
+    try {
+      await fetch(`${API}/api/users/${encodeURIComponent(username)}/cart`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          store_id: nextStoreId,
+          items: nextItems,
+        }),
+      });
+    } catch {
+      // Keep cart usable locally if the save request fails.
+    }
+  }, [username]);
+
   useEffect(() => {
     const role = localStorage.getItem('role');
     if (role !== 'customer' && role !== 'user') { navigate('/signin/user'); return; }
     fetchStores();
+    fetchSavedCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Load customer orders - refresh every 5 seconds
@@ -242,6 +324,14 @@ useEffect(() => {
   const interval = setInterval(loadOrders, 5000); // Refresh every 5 seconds
   return () => clearInterval(interval);
 }, []);
+
+  useEffect(() => {
+    if (!cartSyncReady) {
+      return;
+    }
+
+    saveCartToAccount(selectedStoreId, cartItems);
+  }, [cartSyncReady, selectedStoreId, cartItems, saveCartToAccount]);
 
   const openStores = useMemo(() => stores.filter((s) => (s.status || '').toLowerCase() === 'open'), [stores]);
   const availableCategories = useMemo(() => {
@@ -280,7 +370,7 @@ useEffect(() => {
       const res = await fetch(`${API}/api/stores/${storeId}/menu-items`);
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Failed to load menu.'); setMenuItems([]); }
-      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, description: i.description || '', price: Number(i.price) || 0, store_id: i.store_id })) : []);
+      else setMenuItems(Array.isArray(data) ? data.map((i) => ({ id: i.id, name: i.name, description: i.description || '', image_url: i.image_url || '', price: Number(i.price) || 0, store_id: i.store_id })) : []);
     } catch { setError('Could not load menu items.'); setMenuItems([]); }
     setLoadingMenu(false);
   }, []);
@@ -326,7 +416,7 @@ useEffect(() => {
   }
 
   function handleLogout() {
-    localStorage.removeItem('token'); localStorage.removeItem('role');
+    localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('username');
     navigate('/signin/user');
   }
 
@@ -463,6 +553,7 @@ useEffect(() => {
                   <div className="menu-list">
                     {filteredMenuItems.map((item, idx) => (
                       <div key={item.id} className="menu-row" style={{ animationDelay: `${idx * 0.04}s` }}>
+                        {item.image_url && <img className="menu-photo" src={item.image_url} alt={item.name} loading="lazy" />}
                         <div className="menu-info">
                           <div className="menu-name">{item.name}</div>
                           {item.description && <div className="menu-desc">{item.description}</div>}

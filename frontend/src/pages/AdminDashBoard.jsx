@@ -61,14 +61,42 @@ const S = `
   .mini-inp { flex: 1; padding: 8px 10px; border: 1.5px solid #e0ddd8; border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; outline: none; color: #111; }
   .mini-inp:focus { border-color: #111; }
   .mini-inp.w-price { width: 80px; flex: none; }
+  .dropzone {
+    min-width: 210px;
+    border: 1.5px dashed #cfcac3;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #555;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .dropzone.dragover { border-color: #111; background: #f7f5f1; }
+  .drop-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drop-btn { border: none; background: #111; color: #fff; border-radius: 6px; padding: 6px 8px; font-size: 11px; cursor: pointer; }
   .btn-dark { background: #111; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
   .btn-dark:hover { background: #333; }
   .item-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #e0ddd8; }
   .item-row:last-child { border-bottom: none; }
+  .item-left { display: flex; align-items: center; gap: 10px; }
+  .item-thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; border: 1px solid #e0ddd8; background: #f3f0eb; }
   .item-name { font-size: 13px; font-weight: 600; }
   .item-price { font-size: 13px; color: #888; }
   .btn-x { background: none; border: none; color: #bbb; font-size: 18px; cursor: pointer; line-height: 1; padding: 0 2px; }
   .btn-x:hover { color: #e8300a; }
+  .btn-link {
+    background: none;
+    border: none;
+    color: #111;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .btn-link:hover { color: #e8300a; }
 
   .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
   .modal { background: #fff; border-radius: 18px; padding: 26px; max-width: 340px; width: 90%; }
@@ -95,8 +123,10 @@ export default function AdminDashboard() {
   const [apiError,    setApiError]    = useState('');
   const [menuItems,   setMenuItems]   = useState({});
   const [menuForm,    setMenuForm]    = useState({});
+  const [menuFiles,   setMenuFiles]   = useState({});
   const [expanded,    setExpanded]    = useState(null);
   const [menuLoading, setMenuLoading] = useState({});
+  const [dragStoreId, setDragStoreId] = useState(null);
 
   useEffect(() => { fetchStores(); }, []);
 
@@ -178,13 +208,32 @@ export default function AdminDashboard() {
 
   async function handleAddItem(storeId) {
     const mf = menuForm[storeId] || EMPTY_ITEM;
+    const selectedFile = menuFiles[storeId] || null;
     const price = parseFloat(mf.price);
     if (!mf.name.trim() || isNaN(price) || price < 0) return;
+
     try {
-      const res  = await fetch(`${API}/api/stores/${storeId}/menu-items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: mf.name.trim(), price }) });
+      let imageUrl = '';
+      if (selectedFile) {
+        imageUrl = await uploadImageFile(selectedFile);
+      }
+
+      const payload = {
+        name: mf.name.trim(),
+        price,
+        image_url: imageUrl,
+      };
+      const res  = await fetch(`${API}/api/stores/${storeId}/menu-items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: [...(p[storeId] || []), { id: data.id, name: mf.name.trim(), price }] })); setMenuForm(p => ({ ...p, [storeId]: EMPTY_ITEM })); toast2(`"${mf.name}" added!`); }
-    } catch {}
+      if (res.ok) {
+        setMenuItems(p => ({ ...p, [storeId]: [...(p[storeId] || []), { id: data.id, name: mf.name.trim(), price, image_url: data.image_url || imageUrl }] }));
+        setMenuForm(p => ({ ...p, [storeId]: EMPTY_ITEM }));
+        setMenuFiles(p => ({ ...p, [storeId]: null }));
+        toast2(`"${mf.name}" added!`);
+      }
+    } catch (err) {
+      setApiError(err?.message || 'Could not upload image.');
+    }
   }
 
   async function handleDeleteItem(storeId, itemId, name) {
@@ -192,6 +241,82 @@ export default function AdminDashboard() {
       const res = await fetch(`${API}/api/stores/${storeId}/menu-items/${itemId}`, { method: 'DELETE' });
       if (res.ok) { setMenuItems(p => ({ ...p, [storeId]: p[storeId].filter(i => i.id !== itemId) })); toast2(`"${name}" removed.`); }
     } catch {}
+  }
+
+  async function handleUpdateItemPhoto(storeId, item) {
+    const file = await pickPngFile();
+    if (!file) return;
+
+    try {
+      const image_url = await uploadImageFile(file);
+      const res = await fetch(`${API}/api/stores/${storeId}/menu-items/${item.id}/image`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url }),
+      });
+      if (res.ok) {
+        setMenuItems((prev) => ({
+          ...prev,
+          [storeId]: (prev[storeId] || []).map((menuItem) => (
+            menuItem.id === item.id ? { ...menuItem, image_url } : menuItem
+          )),
+        }));
+        toast2(`Photo updated for "${item.name}".`);
+      }
+    } catch (err) {
+      setApiError(err?.message || 'Could not upload image.');
+    }
+  }
+
+  function validatePngFile(file) {
+    if (!file) {
+      throw new Error('Please select a PNG image.');
+    }
+    const isPngType = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png');
+    if (!isPngType) {
+      throw new Error('Only PNG files are allowed.');
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('File is too large. Max size is 10 MB.');
+    }
+  }
+
+  async function uploadImageFile(file) {
+    validatePngFile(file);
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await fetch(`${API}/api/uploads/menu-item-image`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Image upload failed.');
+    }
+    return data.image_url;
+  }
+
+  function setDroppedFile(storeId, file) {
+    try {
+      validatePngFile(file);
+      setMenuFiles((prev) => ({ ...prev, [storeId]: file }));
+      setApiError('');
+    } catch (err) {
+      setApiError(err?.message || 'Invalid file.');
+    }
+  }
+
+  function pickPngFile() {
+    return new Promise((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,.png';
+      input.onchange = () => resolve(input.files?.[0] || null);
+      input.click();
+    });
   }
 
   function toast2(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
@@ -296,15 +421,42 @@ export default function AdminDashboard() {
                       <div className="menu-add">
                         <input className="mini-inp" placeholder="Item name" value={mf.name} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), name: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
                         <input className="mini-inp w-price" placeholder="$0.00" type="number" min="0" step="0.01" value={mf.price} onChange={e => setMenuForm(p => ({...p, [r.id]: {...(p[r.id]||EMPTY_ITEM), price: e.target.value}}))} onKeyDown={e => e.key==='Enter' && handleAddItem(r.id)} />
+                        <div
+                          className={`dropzone ${dragStoreId === r.id ? 'dragover' : ''}`}
+                          onDragOver={(e) => { e.preventDefault(); setDragStoreId(r.id); }}
+                          onDragLeave={() => setDragStoreId((id) => (id === r.id ? null : id))}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setDragStoreId(null);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) setDroppedFile(r.id, file);
+                          }}
+                        >
+                          <span className="drop-hint">{menuFiles[r.id]?.name || 'Drop PNG here (max 10 MB)'}</span>
+                          <button className="drop-btn" type="button" onClick={async () => {
+                            const file = await pickPngFile();
+                            if (file) setDroppedFile(r.id, file);
+                          }}>
+                            Browse
+                          </button>
+                        </div>
                         <button className="btn-dark" type="button" onClick={() => handleAddItem(r.id)}>+ Add</button>
                       </div>
                       {menuLoading[r.id] && <div className="hint">Loading…</div>}
                       {!menuLoading[r.id] && items.length === 0 && <div className="hint" style={{padding:'8px 0'}}>No items yet.</div>}
                       {items.map(item => (
                         <div key={item.id} className="item-row">
-                          <span className="item-name">{item.name}</span>
-                          <span className="item-price">${Number(item.price).toFixed(2)}</span>
-                          <button className="btn-x" type="button" onClick={() => handleDeleteItem(r.id, item.id, item.name)}>×</button>
+                          <div className="item-left">
+                            {item.image_url && <img className="item-thumb" src={item.image_url} alt={item.name} loading="lazy" />}
+                            <span className="item-name">{item.name}</span>
+                          </div>
+                          <div>
+                            <span className="item-price">${Number(item.price).toFixed(2)}</span>
+                            <button className="btn-link" type="button" onClick={() => handleUpdateItemPhoto(r.id, item)}>
+                              {item.image_url ? 'Change photo' : 'Add photo'}
+                            </button>
+                            <button className="btn-x" type="button" onClick={() => handleDeleteItem(r.id, item.id, item.name)}>×</button>
+                          </div>
                         </div>
                       ))}
                     </div>
