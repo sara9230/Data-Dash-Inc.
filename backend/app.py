@@ -9,7 +9,7 @@
 # ============================================================
 
 from flask import Flask, jsonify, request, send_from_directory
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_cors import CORS
 from database.models import db, User, Store, MenuItem, Order, UserCart
 import json
@@ -107,6 +107,19 @@ def sanitize_cart_items(raw_items):
         })
 
     return sanitized
+
+
+def to_utc_iso(value):
+    if not value:
+        return None
+
+    # Existing rows use naive UTC datetimes; mark them as UTC before serializing.
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+
+    return value.isoformat().replace('+00:00', 'Z')
 
 
 def is_allowed_png(filename):
@@ -367,11 +380,11 @@ def get_orders():
         }
         
         if hasattr(order, 'created_at'):
-            order_data['created_at'] = order.created_at.isoformat() if order.created_at else None
+            order_data['created_at'] = to_utc_iso(order.created_at)
         if hasattr(order, 'accepted_at'):
-            order_data['accepted_at'] = order.accepted_at.isoformat() if order.accepted_at else None
+            order_data['accepted_at'] = to_utc_iso(order.accepted_at)
         if hasattr(order, 'delivered_at'):
-            order_data['delivered_at'] = order.delivered_at.isoformat() if order.delivered_at else None
+            order_data['delivered_at'] = to_utc_iso(order.delivered_at)
         
         result.append(order_data)
     

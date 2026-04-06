@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashBoard';
 import Register from './pages/Register';
 import DriverDashboard from './pages/DriverDashboard';
 import CustomerOrder from './pages/CustomerOrder';
+import FinalizeOrder from './pages/FinalizeOrder';
 import './App.css';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         <Route path="/signin/admin"    element={<AdminSignIn />} />
         <Route path="/dashboard"       element={<CustomerOrder />} />
         <Route path="/order"           element={<CustomerOrder />} />
+        <Route path="/order/finalize"  element={<FinalizeOrder />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/register"        element={<Register />} />
         <Route path="/driver/dashboard" element={<DriverDashboard />} />

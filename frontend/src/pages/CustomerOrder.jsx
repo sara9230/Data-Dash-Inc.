@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const API = 'http://127.0.0.1:5000';
 
@@ -192,10 +192,62 @@ const styles = `
   .place-btn:hover:not(:disabled) { background: #c5290a; }
   .place-btn:disabled { background: #d5d2cc; color: #aaa; cursor: not-allowed; }
   .hint { font-size: 13px; color: var(--muted); font-weight: 500; }
-  /* ORDER STATUS */
-  .order-box { ... }
-  .order-title { ... }
-  /* etc */
+
+  .orders-stack { display: grid; gap: 12px; }
+  .sidebar-stack { display: grid; gap: 14px; }
+  .orders-side .heading { font-size: 20px; margin-bottom: 12px; }
+  .order-box {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  }
+  .order-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .order-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+  .order-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+  .order-pill.current { background: #fff5ec; color: #9c3d16; }
+  .order-pill.past { background: #e8f5e9; color: #1b5e20; }
+
+  .order-status {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .status-item {
+    border: 1px solid #f0ece7;
+    background: #faf9f7;
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .status-icon { display: inline-block; font-size: 18px; margin-bottom: 3px; }
+  .status-label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .status-time { font-size: 12px; color: #777; margin-top: 3px; }
+
+  @media (max-width: 600px) {
+    .order-status { grid-template-columns: 1fr; }
+    .order-head { align-items: flex-start; flex-direction: column; }
+  }
 `;
 
 const categoryEmojis = { pizza:'🍕', burger:'🍔', sushi:'🍣', chinese:'🥡', mexican:'🌮', italian:'🍝', indian:'🍛', thai:'🍜', salad:'🥗', dessert:'🍰', breakfast:'🍳', coffee:'☕', general:'🍽️' };
@@ -232,6 +284,7 @@ function normalizeCartItems(rawItems) {
 
 export default function CustomerOrder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const username = localStorage.getItem('username');
 
   const [stores, setStores] = useState([]);
@@ -307,6 +360,22 @@ export default function CustomerOrder() {
     fetchSavedCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!location.state) {
+      return;
+    }
+
+    if (location.state.orderSuccess) {
+      setSuccess(location.state.orderSuccess);
+      setError('');
+    }
+    if (location.state.orderError) {
+      setError(location.state.orderError);
+    }
+
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
   // Load customer orders - refresh every 5 seconds
 useEffect(() => {
   async function loadOrders() {
@@ -400,7 +469,6 @@ useEffect(() => {
   }, [menuItems, menuSearchTerm]);
 
   const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.price * i.quantity, 0), [cartItems]);
-  const deliveryFee = cartItems.length > 0 ? 2.99 : 0;
 
   function addToCart(item) {
     setCartItems((prev) => {
@@ -446,34 +514,6 @@ useEffect(() => {
 
         <div className="page">
            <div>
-          {/* SHOW CUSTOMER ORDERS */}
-          {orders.length > 0 && (
-            <div className="section">
-              <div className="heading">📦 Your Orders</div>
-              {orders.map((order) => (
-                <div key={order.id} className="order-box">
-                  <div className="order-title">Order #{order.id} • {toCurrency(order.total_price)}</div>
-                  <div className="order-status">
-                    <div className="status-item">
-                      <span className="status-icon">📋</span>
-                      <div className="status-label">Placed</div>
-                      <div className="status-time">{formatTime(order.created_at)}</div>
-                    </div>
-                    <div className="status-item">
-                      <span className="status-icon">{order.status === 'accepted' || order.status === 'delivered' ? '✅' : '⏳'}</span>
-                      <div className="status-label">Accepted</div>
-                      <div className="status-time">{order.accepted_at ? formatTime(order.accepted_at) : '—'}</div>
-                    </div>
-                    <div className="status-item">
-                      <span className="status-icon">{order.status === 'delivered' ? '🎉' : '⏳'}</span>
-                      <div className="status-label">Delivered</div>
-                      <div className="status-time">{order.delivered_at ? formatTime(order.delivered_at) : '—'}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
             <div className="section">
               <div className="eyebrow">Step 1</div>
               <div className="heading">Pick a restaurant</div>
@@ -578,86 +618,102 @@ useEffect(() => {
             )}
           </div>
 
-          <div className="cart-panel">
-            <div className="cart-top">
-              <div className="cart-title">Your order</div>
-              <div className="cart-sub">
-                {selectedStore ? <>from <strong>{selectedStore.name}</strong></> : 'No restaurant selected'}
+          <div className="sidebar-stack">
+            <div className="cart-panel">
+              <div className="cart-top">
+                <div className="cart-title">Your order</div>
+                <div className="cart-sub">
+                  {selectedStore ? <>from <strong>{selectedStore.name}</strong></> : 'No restaurant selected'}
+                </div>
+              </div>
+
+              <div className="cart-body">
+                {cartItems.length === 0 ? (
+                  <div className="cart-empty">
+                    <div className="cart-empty-icon">🛍️</div>
+                    <div>Add items to get started</div>
+                  </div>
+                ) : (
+                  <>
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="cart-row">
+                        <div className="cart-row-info">
+                          <div className="cart-row-name">{item.name}</div>
+                          <div className="cart-row-price">{toCurrency(item.price)}</div>
+                        </div>
+                        <div className="qty-wrap">
+                          <button className="qty-btn" type="button" onClick={() => changeQuantity(item.id, -1)}>−</button>
+                          <span className="qty-num">{item.quantity}</span>
+                          <button className="qty-btn" type="button" onClick={() => changeQuantity(item.id, 1)}>+</button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="cart-totals">
+                      <div className="cart-line"><span>Subtotal</span><span>{toCurrency(cartTotal)}</span></div>
+                      <div className="cart-line total"><span>Total</span><span>{toCurrency(cartTotal)}</span></div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="cart-footer">
+                <button
+                  className="place-btn"
+                  type="button"
+                  disabled={cartItems.length === 0 || !selectedStore}
+                  onClick={() => {
+                    navigate('/order/finalize', {
+                      state: {
+                        storeId: selectedStoreId,
+                        storeName: selectedStore?.name || '',
+                        items: cartItems,
+                      },
+                    });
+                  }}
+                >
+                  {cartItems.length === 0 ? 'Add items to order' : `Place order · ${toCurrency(cartTotal)}`}
+                </button>
               </div>
             </div>
 
-            <div className="cart-body">
-              {cartItems.length === 0 ? (
-                <div className="cart-empty">
-                  <div className="cart-empty-icon">🛍️</div>
-                  <div>Add items to get started</div>
+            {/* SHOW CUSTOMER ORDERS */}
+            {orders.length > 0 && (
+              <div className="orders-side">
+                <div className="heading">📦 Your Orders</div>
+                <div className="orders-stack">
+                  {orders.map((order) => {
+                    const isPast = order.status === 'delivered';
+                    return (
+                      <div key={order.id} className="order-box">
+                        <div className="order-head">
+                          <div className="order-title">Order #{order.id} • {toCurrency(order.total_price)}</div>
+                          <span className={`order-pill ${isPast ? 'past' : 'current'}`}>
+                            {isPast ? 'Past Order' : 'Current Order'}
+                          </span>
+                        </div>
+                        <div className="order-status">
+                          <div className="status-item">
+                            <span className="status-icon">📋</span>
+                            <div className="status-label">Placed</div>
+                            <div className="status-time">{formatTime(order.created_at)}</div>
+                          </div>
+                          <div className="status-item">
+                            <span className="status-icon">{order.status === 'accepted' || order.status === 'delivered' ? '✅' : '⏳'}</span>
+                            <div className="status-label">Accepted</div>
+                            <div className="status-time">{order.accepted_at ? formatTime(order.accepted_at) : '—'}</div>
+                          </div>
+                          <div className="status-item">
+                            <span className="status-icon">{order.status === 'delivered' ? '🎉' : '⏳'}</span>
+                            <div className="status-label">Delivered</div>
+                            <div className="status-time">{order.delivered_at ? formatTime(order.delivered_at) : '—'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <>
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="cart-row">
-                      <div className="cart-row-info">
-                        <div className="cart-row-name">{item.name}</div>
-                        <div className="cart-row-price">{toCurrency(item.price)}</div>
-                      </div>
-                      <div className="qty-wrap">
-                        <button className="qty-btn" type="button" onClick={() => changeQuantity(item.id, -1)}>−</button>
-                        <span className="qty-num">{item.quantity}</span>
-                        <button className="qty-btn" type="button" onClick={() => changeQuantity(item.id, 1)}>+</button>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="cart-totals">
-                    <div className="cart-line"><span>Subtotal</span><span>{toCurrency(cartTotal)}</span></div>
-                    <div className="cart-line"><span>Delivery</span><span>{toCurrency(deliveryFee)}</span></div>
-                    <div className="cart-line total"><span>Total</span><span>{toCurrency(cartTotal + deliveryFee)}</span></div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="cart-footer">
-              <button
-                className="place-btn"
-                type="button"
-                disabled={cartItems.length === 0 || !selectedStore}
-                onClick={async () => {
-                  setError(''); setSuccess('');
-                  const username = localStorage.getItem('username');
-                  try {
-                    const res = await fetch(`${API}/api/orders`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        store_id: selectedStoreId,
-                        customer_username: username,
-                        total_price: Math.round((cartTotal + deliveryFee) * 100) / 100,
-                      }),
-                    });
-
-                    const contentType = res.headers.get('content-type') || '';
-                    let data = null;
-                    if (contentType.includes('application/json')) {
-                      data = await res.json();
-                    } else {
-                      const raw = await res.text();
-                      data = { message: raw?.slice(0, 180) || 'Server error while placing order.' };
-                    }
-
-                    if (res.ok) {
-                      setSuccess(`Order #${data.order_id} placed! Total: $${(cartTotal + deliveryFee).toFixed(2)}`);
-                      setCartItems([]);
-                    } else {
-                      setError(data.message || 'Failed to place order.');
-                    }
-                  } catch {
-                    setError('Could not connect to the server.');
-                  }
-                }}
-              >
-                {cartItems.length === 0 ? 'Add items to order' : `Place order · ${toCurrency(cartTotal + deliveryFee)}`}
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
